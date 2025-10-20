@@ -379,15 +379,18 @@
         
         // Limpa a tela de rastreamento
         currentTrackingId.textContent = activeTrackingId;
-        trackingStatusMessage.textContent = 'Aguardando geração do link...';
-        trackingDisplay.style.display = 'block';
-        deviceSection.style.display = 'none';
-        locationSection.style.display = 'none';
-        errorSection.style.display = 'none';
-        descriptionSection.style.display = 'none';
-        deviceData.innerHTML = '';
-        locationData.innerHTML = '';
-        errorData.innerHTML = '';
+        trackingStatusMessage.textContent = 'Aguardando geração do link...';
+        trackingDisplay.style.display = 'block';
+        deviceSection.style.display = 'none';
+        locationSection.style.display = 'none';
+        errorSection.style.display = 'none';
+        descriptionSection.style.display = 'none';
+        serverSection.style.display = 'none'; // <-- ADICIONE ESTA LINHA
+        deviceData.innerHTML = '';
+        locationData.innerHTML = '';
+        errorData.innerHTML = '';
+        serverData.innerHTML = ''; // <-- ADICIONE ESTA LINHA
+
 
 
         // EXTRAI A EXTENSÃO
