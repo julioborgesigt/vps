@@ -329,54 +329,94 @@
     }
 
     // Exibir dados recebidos (usado por fetch e search)
+    // Exibir dados recebidos (usado por fetch e search) - CORRIGIDA
     function displayReceivedData(data) {
-        let mainStatus = 'Status consultado.';
+        let mainStatus = 'Consultando status...'; // Status inicial/padrão
+        const hasLocationData = data.result || data.error; // Verifica se dados de localização (sucesso ou erro) chegaram
 
         if (data.status === 'RECEIVED') {
-            mainStatus = '✅ Informações recebidas/encontradas!';
-            exportPdfBtn.disabled = false; // Habilita PDF
+            // Habilita PDF APENAS se a localização chegou
+            exportPdfBtn.disabled = !hasLocationData; 
 
-            // Exibe Descrição
+            // Define a mensagem de status principal
+            if (hasLocationData) {
+                // Mensagens FINAIS (quando localização chega)
+                if (data.result) {
+                    mainStatus = '✅ Localização encontrada!';
+                } else { // data.error deve existir
+                    mainStatus = '⚠️ Erro registrado ao obter localização.';
+                }
+            } else {
+                // Mensagem INTERMEDIÁRIA (enquanto espera localização)
+                mainStatus = '⏳ Dispositivo detectado. Aguardando localização...'; // Emoji de ampulheta
+            }
+
+            // Exibe as seções que já têm dados
+            // Descrição (sempre se houver)
             if (data.description || data.title) {
                 descriptionSection.style.display = 'block';
                 descriptionData.innerHTML = `
                     <div class="data-item"><strong>Título:</strong> ${data.title || 'N/A'}</div>
                     <div class="data-item" style="border-bottom: none;"><strong>Anotações:</strong> ${(data.description || 'Nenhuma').replace(/\n/g, '<br>')}</div>
                 `;
+            } else {
+                 descriptionSection.style.display = 'none'; // Garante que esconda se não houver
             }
-            // Exibe IP
+            // IP (sempre se houver)
             if (data.clientIp) {
                 serverSection.style.display = 'block';
                 renderData({ clientIp: data.clientIp }, serverData);
+            } else {
+                 serverSection.style.display = 'none';
             }
-            // Exibe Info Dispositivo
+            // Info Dispositivo (sempre se houver)
             if (data.info) {
                 deviceSection.style.display = 'block';
                 renderData(data.info, deviceData);
+            } else {
+                 deviceSection.style.display = 'none';
             }
-            // Exibe Localização
+            
+            // Exibe Localização OU Erro (APENAS se hasLocationData for true)
             if (data.result) {
-                locationSection.style.display = 'block';
+                 locationSection.style.display = 'block';
+                 errorSection.style.display = 'none'; // Esconde erro se resultado chegou
                 renderData(data.result, locationData);
-                mainStatus = '✅ Localização encontrada!';
-            }
-            // Exibe Erros
-            if (data.error) {
-                errorSection.style.display = 'block';
+            } else if (data.error) {
+                 errorSection.style.display = 'block';
+                 locationSection.style.display = 'none'; // Esconde resultado se erro chegou
                 renderData(data.error, errorData);
-                // Dá prioridade à mensagem de erro se ambos (result e error) existirem
-                mainStatus = '⚠️ Erro registrado ao obter localização.';
+            } else {
+                 // Esconde ambas se hasLocationData for false
+                 locationSection.style.display = 'none';
+                 errorSection.style.display = 'none';
             }
 
         } else if (data.status === 'ACTIVE') {
             mainStatus = 'Link ativo, aguardando primeiro acesso...';
+            exportPdfBtn.disabled = true; // Desabilita PDF se ainda está ativo
+            // Garante que todas as seções de dados estejam escondidas
+             descriptionSection.style.display = 'none';
+             serverSection.style.display = 'none';
+             deviceSection.style.display = 'none';
+             locationSection.style.display = 'none';
+             errorSection.style.display = 'none';
         } else if (data.status === 'INACTIVE' || !data.status) {
              mainStatus = 'ID não encontrado ou inativo.';
-             trackingDisplay.style.display = 'none'; // Esconde display se inativo
+             trackingDisplay.style.display = 'none'; // Esconde toda a área
+             exportPdfBtn.disabled = true;
         } else {
              mainStatus = `Status desconhecido: ${data.status}`;
+             exportPdfBtn.disabled = true;
+             // Também esconde as seções de dados para status inesperados
+              descriptionSection.style.display = 'none';
+              serverSection.style.display = 'none';
+              deviceSection.style.display = 'none';
+              locationSection.style.display = 'none';
+              errorSection.style.display = 'none';
         }
         
+        // Atualiza a mensagem principal de status na tela
         trackingStatusMessage.textContent = mainStatus;
     }
 
@@ -384,38 +424,57 @@
     // --- Lógica Principal ---
 
     // Função de Polling (chamada após gerar link)
+    // Função de Polling (chamada após gerar link ou consultar link ativo) - CORRIGIDA
     async function fetchTrackingStatus() {
-        if (!activeTrackingId || !fetchInterval) return; // Só roda se tiver ID ativo e polling iniciado
+        if (!activeTrackingId || !fetchInterval) {
+             // Se não há ID ativo ou o intervalo foi limpo, não faz nada.
+             // Isso pode acontecer se o usuário clicar em gerar/buscar novamente.
+             console.log("[DEBUG POLLING] Polling não executado: ID não ativo ou intervalo limpo.");
+             return; 
+        }
 
         try {
             const fetchUrl = `${API_BASE_URL}/api/status?id=${activeTrackingId}`;
-            console.log(`[DEBUG POLLING] Buscando status em: ${fetchUrl}`);
+            // Removido o log daqui para não poluir tanto o console a cada 3s
+            // console.log(`[DEBUG POLLING] Buscando status em: ${fetchUrl}`);
             const response = await fetch(fetchUrl);
 
             if (!response.ok) {
                 console.error(`[DEBUG POLLING ERRO] Status HTTP: ${response.status}. URL: ${fetchUrl}`);
-                trackingStatusMessage.textContent = `Erro ao buscar (${response.status}).`;
-                // Não para o polling em caso de erro temporário, mas poderia parar se fosse 404
-                // if (response.status === 404) clearInterval(fetchInterval); 
-                return;
+                trackingStatusMessage.textContent = `Erro ao buscar (${response.status}). Tentando novamente...`;
+                // Considerar parar o polling se for 404 (ID não existe mais?)
+                if (response.status === 404) {
+                     console.error(`[DEBUG POLLING] ID ${activeTrackingId} não encontrado (404). Parando polling.`);
+                     clearInterval(fetchInterval);
+                     fetchInterval = null;
+                     trackingStatusMessage.textContent = 'ID não encontrado. Polling interrompido.';
+                     trackingDisplay.style.display = 'none';
+                }
+                return; // Tenta novamente no próximo intervalo se não for 404
             }
             
             const data = await response.json();
             
-            // Usa a função centralizada para exibir os dados
+            // Usa a função centralizada para exibir os dados e definir status intermediário/final
             displayReceivedData(data);
 
-            // Para o polling se o status for RECEIVED ou INACTIVE
-            if (data.status === 'RECEIVED' || data.status === 'INACTIVE') {
-                console.log(`[DEBUG POLLING] Status final (${data.status}). Parando polling para ${activeTrackingId}.`);
+            // --- CONDIÇÃO DE PARADA DO POLLING CORRIGIDA ---
+            const hasLocationData = data.result || data.error;
+            // Para APENAS se:
+            // 1) Status é RECEIVED E já temos dados de localização (result OU error)
+            // OU 2) Status é INACTIVE (ID inválido/não encontrado)
+            if ((data.status === 'RECEIVED' && hasLocationData) || data.status === 'INACTIVE') {
+                console.log(`[DEBUG POLLING] Condição de parada atingida. Status: ${data.status}, Localização recebida: ${hasLocationData}. Parando polling para ${activeTrackingId}.`);
                 clearInterval(fetchInterval);
-                fetchInterval = null;
+                fetchInterval = null; // Libera a variável para futuras operações
             }
+             // Se status é RECEIVED mas hasLocationData é FALSE, o polling CONTINUA.
+             // Se status é ACTIVE, o polling CONTINUA.
 
         } catch (error) {
-            console.error(`[DEBUG POLLING CATCH] Erro: ${error.name} - ${error.message}`);
-            trackingStatusMessage.textContent = 'Erro de conexão no polling.';
-            // Considerar parar o polling em caso de erro de rede persistente
+            console.error(`[DEBUG POLLING CATCH] Erro de rede/processamento: ${error.name} - ${error.message}`);
+            trackingStatusMessage.textContent = 'Erro de conexão no polling. Verifique o console.';
+            // Considerar parar o polling em caso de erro de rede persistente para não sobrecarregar
             // clearInterval(fetchInterval); fetchInterval = null;
         }
     }
