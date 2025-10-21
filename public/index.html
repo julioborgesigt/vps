@@ -496,6 +496,7 @@
     });
 
     // Consulta de Rastreamento
+    // Consulta de Rastreamento (COM POLLING PARA LINKS ATIVOS)
     searchBtn.addEventListener('click', async () => {
         const trackingIdToSearch = searchIdInput.value.trim();
 
@@ -505,18 +506,22 @@
             return;
         }
 
-        // Limpa polling anterior
+        // Limpa polling anterior, SE EXISTIR
         if (fetchInterval) {
             clearInterval(fetchInterval);
             fetchInterval = null;
             console.log('[DEBUG SEARCH] Intervalo de polling anterior limpo.');
         }
 
-        // Feedback visual
+        // Feedback visual inicial
         searchStatus.textContent = 'Buscando informações...';
         searchStatus.style.color = '#65676b';
         searchBtn.disabled = true;
         resetTrackingDisplay(trackingIdToSearch); // Limpa e prepara a área de exibição
+
+        // Define o ID consultado como ativo *antes* da chamada,
+        // para que fetchTrackingStatus (se iniciado) saiba qual ID usar.
+        activeTrackingId = trackingIdToSearch; 
 
         // Chamada API para buscar status
         try {
@@ -529,19 +534,26 @@
                 searchStatus.style.color = '#dc3545';
                 trackingStatusMessage.textContent = 'ID não encontrado.';
                 trackingDisplay.style.display = 'none'; // Esconde se não achou
-                activeTrackingId = null; // Reseta ID ativo
+                activeTrackingId = null; // Reseta ID ativo se não encontrado
                  console.error(`[DEBUG SEARCH ERRO] Status HTTP: ${response.status}.`);
+                 searchBtn.disabled = false; // Reabilita botão se ID não encontrado
                  return; 
             }
 
             const data = await response.json();
             searchStatus.textContent = ''; // Limpa status da busca se ok
-
-            // Define o ID consultado como ativo para o botão PDF
-            activeTrackingId = trackingIdToSearch; 
             
-            // Usa a função centralizada para exibir os dados
+            // Usa a função centralizada para exibir os dados iniciais
             displayReceivedData(data); 
+
+            // --- INÍCIO DA MODIFICAÇÃO: Iniciar polling se 'ACTIVE' ---
+            if (data.status === 'ACTIVE') {
+                 console.log(`[DEBUG SEARCH] ID ${activeTrackingId} está ativo. Iniciando polling.`);
+                 // Inicia o polling para este ID ativo
+                 fetchInterval = setInterval(fetchTrackingStatus, 3000); 
+                 // A mensagem "Link ativo, aguardando primeiro acesso..." já foi definida por displayReceivedData
+            }
+            // --- FIM DA MODIFICAÇÃO ---
 
         } catch (error) {
             console.error(`[DEBUG SEARCH CATCH] Erro: ${error.name} - ${error.message}`);
@@ -549,9 +561,12 @@
             searchStatus.style.color = '#dc3545';
             trackingStatusMessage.textContent = 'Erro na consulta.';
             trackingDisplay.style.display = 'none';
-            activeTrackingId = null;
+            activeTrackingId = null; // Reseta ID ativo em caso de erro grave
         } finally {
-            searchBtn.disabled = false; // Reabilita o botão
+            // Reabilita o botão APENAS se não iniciou o polling (ou seja, se o status final NÃO era ACTIVE)
+            // Se iniciou polling, o botão só será reabilitado quando o polling parar ou outra ação ocorrer.
+            // No entanto, para melhor usabilidade, vamos reabilitar sempre. O polling anterior será limpo de qualquer forma.
+            searchBtn.disabled = false; 
         }
     });
 
